@@ -1,0 +1,58 @@
+#!/bin/bash
+# Script to find mixed words in killer_cronicas.txt
+
+INPUT=input.txt
+WORDS=words.txt
+COUNT=count.txt
+MIXED=mixed_words.txt
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 Filename ";
+    exit 1;
+else
+    cp $1 $INPUT # Preserve original copy
+fi
+
+aspell -C list < $INPUT > $WORDS
+aspell -C -des list < $WORDS > temp && mv temp $WORDS
+aspell -C -dit list < $WORDS > temp && mv temp $WORDS
+aspell -C -dfr list < $WORDS > temp && mv temp $WORDS
+aspell -C -dpt_BR list < $WORDS > temp && mv temp $WORDS
+aspell -C -dpt_PT list  < $WORDS > temp && mv temp $WORDS
+aspell -C -daf list  < $WORDS > temp && mv temp $WORDS
+    # Filter out valid words in English, Spanish, Italian, French,
+    # Portuguese, and Afrikaans
+
+tr '[:upper:]' '[:lower:]' < $WORDS | sort > temp && mv temp $WORDS 
+
+grep -v -E "killer|crónic[a|as]|xx|arg" $WORDS > temp && mv temp $WORDS
+grep -v -E "maría|pizarnik" $WORDS > temp && mv temp $WORDS
+grep -v -E "sh[o|a]|voh|dra|th|pomo|ion|ex|line" $WORDS > temp && mv temp $WORDS
+grep -v -E "of|hasn|isn|hadn|didn|couldn|wouldn|doesn|weren|wasn|ness|nne|liz" $WORDS > temp && mv temp $WORDS
+grep -v -E "^..$" $WORDS > temp && mv temp $WORDS
+grep -v -E "^...$" $WORDS > temp && mv temp $WORDS
+grep -v -E "h$" $WORDS > temp && mv temp $WORDS
+
+uniq -i -c $WORDS | sort -rn > $COUNT
+
+uniq -i $WORDS > temp && mv temp $WORDS
+
+wc $WORDS
+
+uniq -i -c $WORDS | sort -rn > $COUNT
+grep -v -E "ao|ía|ht|zh|sh|ñ|hc|ó|hp" $WORDS > temp && mv temp $WORDS
+
+wc $WORDS
+
+uniq -i -c $WORDS | sort -rn > $COUNT
+
+awk '{ print $2 }' $COUNT > temp && mv temp $COUNT
+
+for i in `cat $COUNT`; do
+    read -p "Is \"$i\" a word or name (y/n)? " choice
+    case "$choice" in 
+        y|Y ) grep -i -v "$i" $WORDS > temp && mv temp $WORDS;;
+        n|N ) ;;
+        * ) echo "invalid";;
+    esac 
+done

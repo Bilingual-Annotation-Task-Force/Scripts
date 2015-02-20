@@ -1,0 +1,99 @@
+#!/bin/bash
+# Script to revise output
+
+INPUT=Killer_Cronicas-output.txt
+ENG=Eng_Output.txt
+SPAN=Span_Output.txt
+OTHER=Other_Output.txt
+NAMED=Named_Output.txt
+ENG_WITHOUT_SPAN=Eng_Without_Span_Output.txt
+SPAN_WITHOUT_ENG=Span_Without_Eng_Output.txt
+MIXED=../mixed.txt
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 Filename ";
+    exit 1;
+else
+    INPUT=$1
+fi
+
+awk '{ if($2 == "Eng") print $1 }' $INPUT > $ENG   # Filter by tag
+awk '{ if($2 == "Span") print $1 }' $INPUT > $SPAN # and remove it
+awk '{ if($2 == "OTHER") print $1 }' $INPUT > $OTHER
+awk '{ if($2 == "NAMED") print $1 }' $INPUT > $NAMED
+
+echo "Removing duplicate tagged words... "
+cat $ENG | sort | uniq > temp && mv temp $ENG   # Remove duplicates
+cat $SPAN | sort | uniq > temp && mv temp $SPAN
+cat $OTHER | sort | uniq > temp && mv temp $OTHER
+cat $NAMED | sort | uniq > temp && mv temp $NAMED
+
+WC_ENG=`wc -l $ENG | awk '{ print $1 }'`     # Get total word count
+WC_SPAN=`wc -l $SPAN | awk '{ print $1 }'`
+WC_OTHER=`wc -l $OTHER | awk '{ print $1 }'`
+WC_NAMED=`wc -l $NAMED | awk '{ print $1 }'`
+
+echo
+echo "Identified $WC_ENG English words"
+echo "Identified $WC_SPAN Spanish words"
+echo "Identified $WC_OTHER Other words"
+echo "Identified $WC_NAMED Named words"
+
+aspell list < $ENG > temp && mv temp $ENG       # Filter out valid words
+aspell -des list < $SPAN > temp && mv temp $SPAN
+
+INCORR_ENG=`wc -l $ENG | awk '{ print $1 }'`    # Get number of incorrectly 
+INCORR_SPAN=`wc -l $SPAN | awk '{ print $1 }'`  # tagged words
+
+CORR_ENG=$[WC_ENG - INCORR_ENG]    # Subtract from total to find 
+CORR_SPAN=$[WC_SPAN - INCORR_SPAN] # number of correctly tagged words
+
+aspell -des list < $ENG > $ENG_WITHOUT_SPAN # Remove words in other language
+aspell list < $SPAN > $SPAN_WITHOUT_ENG
+
+NONSPAN_IN_ENG=`wc -l $ENG_WITHOUT_SPAN | awk '{ print $1 }'`
+NONENG_IN_SPAN=`wc -l $SPAN_WITHOUT_ENG | awk '{ print $1 }'`
+
+SPAN_IN_ENG=$[WC_ENG - NONSPAN_IN_ENG]
+ENG_IN_SPAN=$[WC_SPAN - NONSPAN_IN_ENG]
+
+echo
+
+# Some statistics
+echo "Correctly tagged $CORR_ENG English words out of $WC_ENG tagged words"
+echo -n "Success rate: "
+echo "scale=3; $CORR_ENG / $WC_ENG" | bc
+echo "Incorrectly tagged $INCORR_ENG words"
+echo -n "Error rate: "
+echo "scale=3; $INCORR_ENG / $WC_ENG " | bc
+
+echo
+
+echo "Correctly tagged $CORR_SPAN Spanish words out of $WC_SPAN tagged words"
+echo -n "Success rate: "
+echo "scale=3; $CORR_SPAN / $WC_SPAN" | bc
+echo "Incorrectly tagged $INCORR_SPAN words"
+echo -n "Error rate: "
+echo "scale=3; $INCORR_SPAN / $WC_SPAN " | bc
+
+echo
+echo "Checking for tagged mixed words..."
+
+for i in `cat $MIXED`; do  # Check for incorrectly tagged mixed words
+    grep -q "$i" $ENG;
+    if [[ $? == 0 ]]; then
+        echo "\"$i\" tagged as English "
+    fi
+    grep -q "$i" $SPAN;
+    if [[ $? == 0 ]]; then
+        echo "\"$i\" tagged as Spanish "
+    fi
+    grep -q "$i" $OTHER;
+    if [[ $? == 0 ]]; then
+        echo "\"$i\" tagged as Other "
+    fi
+    grep -q "$i" $NAMED;
+    if [[ $? == 0 ]]; then
+        echo "\"$i\" tagged as Named "
+    fi
+done
