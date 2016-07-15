@@ -2,19 +2,14 @@
 # getTransitions.py
 # Using Python 2.7.11
 
-import sys
 import io
-import numpy as np
-import scipy.fftpack
-import matplotlib.pyplot as plt
+import sys
 from collections import Counter
-import math
 
 langs = [u'Eng', u'Spn']
 
 def main(argv):
 	tags = []
-	transitions = {langs[0]: {}, langs[1]: {}}
 
 	if len(sys.argv) >= 2:
 		f = io.open(argv[0], "r", encoding="utf8").readlines()
@@ -24,18 +19,24 @@ def main(argv):
 			tags.append(line.strip())
 
 	tags = [x for x in tags if x in langs]
+	transitions = {tag : {} for tag in set(tags)}
 	counts = Counter(zip(tags, tags[1:]))
 
-	total = sum(counts.values()) # Get new total for language tags
+	total = len(tags) - 1
 
-	for (x, y), c in counts.iteritems(): # Compute transition matrix
+	for (x, y), c in counts.iteritems():
 		transitions[x][y] = c / float(total)
 		print "{} -> {} : {} : {}".format(x, y, transitions[x][y], c)
+	
+	switchProb = 0.0
+	stayProb = 0.0
 
-	switchProb = transitions[langs[0]].get(langs[1], 0.0) + \
-			transitions[langs[1]].get(langs[0], 0.0)
-	stayProb = transitions[langs[0]].get(langs[0], 0.0) + \
-			transitions[langs[1]].get(langs[1], 0.0)
+	for k, v in transitions.iteritems():
+		for k1, v1 in v.iteritems():
+			if k == k1:
+				stayProb += v1
+			else:
+				switchProb += v1
 
 	print "Probability of switching language: {}".format(switchProb)
 	print "Probability of maintaining language: {}".format(stayProb)
