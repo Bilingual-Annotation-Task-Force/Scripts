@@ -27,7 +27,11 @@ def main(argv):
 	Spnhist = [y for (x, y) in counts if x == "Spn"]
 	bins = np.linspace(0, 100, 100)
 	counts = sorted([(c, len(list(cgen))) for c, cgen in groupby(counts)])
-	print counts
+
+	print "Lang\tSpan Length\tSpan Freq"
+
+	for ((lang, length), freq) in counts:
+		print "{}\t{}\t{}".format(lang, length, freq)
 
 	maxFreq = max(z for ((x, y), z) in counts)
 	upperylim = int(math.ceil(maxFreq / 100.0)) * 100
@@ -39,17 +43,17 @@ def main(argv):
 	sub1 = fig.add_subplot(211)
 	sub1.set_title("Eng Spans")
 	sub1.hist(Enghist, bins)
-	sub1.set_ylim([0, upperylim])
-	sub1.set_xticks(np.arange(upperxlim, step=1), minor=True)
-	sub1.set_xlim([0, upperxlim])
+	# sub1.set_ylim([0, upperylim])
+	# sub1.set_xticks(np.arange(upperxlim, step=1), minor=True)
+	# sub1.set_xlim([0, upperxlim])
 	sub1.plot()
 
 	sub2 = fig.add_subplot(212)
 	sub2.set_title("Spn Spans")
 	sub2.hist(Spnhist, bins)
-	sub2.set_ylim([0, upperylim])
-	sub2.set_xticks(np.arange(upperxlim, step=1), minor=True)
-	sub2.set_xlim([0, upperxlim])
+	# sub2.set_ylim([0, upperylim])
+	# sub2.set_xticks(np.arange(upperxlim, step=1), minor=True)
+	# sub2.set_xlim([0, upperxlim])
 	sub2.plot()
 
 	plt.show()
