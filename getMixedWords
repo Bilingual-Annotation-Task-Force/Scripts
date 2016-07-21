@@ -10,7 +10,7 @@ if [[ $# -ne 1 ]]; then
     echo "Usage: $0 Filename ";
     exit 1;
 else
-    cp $1 $INPUT # Preserve original copy
+    cp "$1" "$INPUT"; # Preserve original copy
 fi
 
 aspell -C list < $INPUT > $WORDS
