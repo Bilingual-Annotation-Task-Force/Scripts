@@ -1,7 +1,6 @@
 # Read in data
 args = commandArgs(trailingOnly=TRUE)
-#df = read.csv(args[2])
-df = read.csv("sample.csv")
+df = read.csv(args[2])
 
 # Set up a panel of 2 charts: histogram and density plot of
 # interamount times.
