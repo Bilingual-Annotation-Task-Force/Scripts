@@ -37,9 +37,12 @@ def get_tags():
         if HEADER:
                 lang_tags = lang_tags[1:]
 
-        # Only include specific languages
-        # And remove all whitespace
-        lang_tags = [lang for lang in lang_tags if lang in LANGS]
+        # Assume input has not other tags
+        if not LANGS:
+                LANGS = list(set(lang_tags))
+        # Otherwise, filter out non-language tags
+        else:
+                lang_tags = [lang for lang in lang_tags if lang in LANGS]
 
         return lang_tags
 
@@ -60,14 +63,14 @@ def main(argc, argv):
 def get_m_metric(lang_tags):
         k = len(LANGS)
         total = len(lang_tags)
-        lang1 = [x for x in lang_tags if x == LANGS[0]]
-        lang2 = [x for x in lang_tags if x == LANGS[1]]
 
-        p1 = (len(lang1) / float(total)) ** 2
-        p2 = (len(lang2) / float(total)) ** 2
-        pj = p1 + p2
+        p_lang = {lang: 0 for lang in LANGS}
+        for lang in p_lang:
+                p_lang[lang] = len([x for x in lang_tags if x == lang])
+                p_lang[lang] = (p_lang[lang] / float(total)) ** 2
 
-        m_metric = (1 - pj) / ((k - 1) * pj)
+        p_sum = sum(p_lang.values())
+        m_metric = (1 - p_sum) / ((k - 1) * p_sum)
 
         return m_metric
 
@@ -108,15 +111,16 @@ def get_memory(lang_tags):
         memory = 0.0
 
         for i, span in enumerate(spans[:-1]):
-                memory +=(span - mean1) * (spans[i + 1] - mean2)
+                memory += (span - mean1) * (spans[i + 1] - mean2)
 
         memory /= (len(spans) - 1) * (sd1 * sd2)
-                
+
         return memory
 
 
-def get_spans(lang_tags):
-        return [len(list(group)) for lang, group in groupby(lang_tags)][:-1]
+def get_spans(lang_tags):  # Include last span?
+        return [len(list(group)) for lang, group in groupby(lang_tags)]
+
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(description="Calculate various \
@@ -128,11 +132,11 @@ if __name__ == "__main__":
                 "-l", "--langs",
                 metavar=("lang1", "lang2"),
                 nargs=2,
-                required=True,
+                default=[],
                 help="languages in corpus")
         parser.add_argument(
                 "-d", "--delimiter",
-                nargs=1,
+                nargs="?",
                 type=str,
                 default="\t",
                 help="delimiter for input file")
@@ -143,6 +147,7 @@ if __name__ == "__main__":
         parser.add_argument(
                 "-c", "--column",
                 metavar="n",
+                nargs="?",
                 type=int,
                 default=0,
                 help="zero-indexed language column in input file")
