@@ -44,7 +44,7 @@ def get_tags():
         return lang_tags
 
 
-def main(argv, argc):
+def main(argc, argv):
         lang_tags = get_tags()
         m_metric = get_m_metric(lang_tags)
         i_index = get_i_index(lang_tags)
@@ -122,16 +122,19 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description="Calculate various \
                         metrics to describe CS behavior in \
                         language-tagged corpora")
+
         # Optional arguments
         parser.add_argument(
                 "-l", "--langs",
                 metavar=("lang1", "lang2"),
                 nargs=2,
-                default=[],
                 required=True,
                 help="languages in corpus")
         parser.add_argument(
                 "-d", "--delimiter",
+                nargs=1,
+                type=str,
+                default="\t",
                 help="delimiter for input file")
         parser.add_argument(
                 "-v", "--verbose",
@@ -140,6 +143,8 @@ if __name__ == "__main__":
         parser.add_argument(
                 "-c", "--column",
                 metavar="n",
+                type=int,
+                default=0,
                 help="zero-indexed language column in input file")
         parser.add_argument(
                 "--header",
@@ -162,25 +167,16 @@ if __name__ == "__main__":
 
         args = parser.parse_args()
 
-        if args.langs:
-                LANGS = args.langs
-
-        if args.delimiter:
-                DELIMITER = args.delimiter
-
         if args.verbose:
                 VERBOSE = True
-
-        if args.column:
-                LANGCOL = int(args.column)
 
         if args.header:
                 HEADER = True
 
-        if args.infile:
-                INFILE = args.infile
+        DELIMITER = args.delimiter
+        INFILE = args.infile
+        LANGCOL = args.column
+        LANGS = args.langs
+        OUTFILE = args.outfile
 
-        if args.outfile:
-                OUTFILE = args.outfile
-
-        main(sys.argv, len(sys.argv))
+        main(len(sys.argv), sys.argv)
