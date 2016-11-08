@@ -5,14 +5,11 @@
 # PURPOSE: Calculate various metrics to describe code-switching behavior in
 # language-tagged corpora.
 
-import io
-import os
 import sys
-from collections import Counter
-from itertools import groupby
-import numpy as np
-import math
 import argparse
+import numpy as np
+from itertools import groupby
+from collections import Counter
 
 LANGS = []
 LANGCOL = 0
@@ -21,30 +18,6 @@ HEADER = False
 VERBOSE = False
 INFILE = 0
 OUTFILE = 0
-
-
-def get_tags():
-        global LANGS, LANGCOL, DELIMITER, VERBOSE
-
-        lang_tags = []
-
-        # Read all language tags into variable
-        for line in INFILE:
-                lang_tag = line.split(DELIMITER)[LANGCOL]
-                lang_tags.append(lang_tag.strip())
-
-        # Skip first if header exists
-        if HEADER:
-                lang_tags = lang_tags[1:]
-
-        # Assume input has no other tags
-        if not LANGS:
-                LANGS = list(set(lang_tags))
-        # Otherwise, filter out non-language tags
-        else:
-                lang_tags = [lang for lang in lang_tags if lang in LANGS]
-
-        return lang_tags
 
 
 def main(argc, argv):
@@ -60,35 +33,60 @@ def main(argc, argv):
         print("Memory: {}".format(memory))
 
 
+def get_tags():
+        global LANGS, LANGCOL, DELIMITER, VERBOSE
+
+        lang_tags = []
+
+        # Read all language tags
+        for line in INFILE:
+                lang_tag = line.split(DELIMITER)[LANGCOL]
+                lang_tags.append(lang_tag.strip())
+
+        # Skip first line if header specified
+        if HEADER:
+                lang_tags = lang_tags[1:]
+
+        # Assume input has no other tags
+        if not LANGS:
+                LANGS = list(set(lang_tags))
+        # Otherwise, filter out non-language tags
+        else:
+                lang_tags = [lang for lang in lang_tags if lang in LANGS]
+
+        return lang_tags
+
+
 def get_m_metric(lang_tags):
-        k = len(LANGS)
-        total = len(lang_tags)
+        num_langs = len(LANGS)
+        total_tags = len(lang_tags)
 
         # Compute p_i^2 for all languages in text
         p_lang = {}
         for lang in LANGS:
                 p_lang[lang] = len([x for x in lang_tags if x == lang])
-                p_lang[lang] = (p_lang[lang] / float(total)) ** 2
+                p_lang[lang] = (p_lang[lang] / float(total_tags)) ** 2
 
         p_sum = sum(p_lang.values())
-        m_metric = (1 - p_sum) / ((k - 1) * p_sum)
+        m_metric = (1 - p_sum) / ((num_langs - 1) * p_sum)
 
         return m_metric
 
 
 def get_i_index(lang_tags):
+        # Count number of language switches for each language
         switches = {lang: {} for lang in set(lang_tags)}
         counts = Counter(zip(lang_tags, lang_tags[1:]))
 
-        total = len(lang_tags) - 1
+        total_switches = len(lang_tags) - 1
 
-        # Compute transition probabilites
+        # Compute transition probabilities
         for (x, y), c in counts.items():
-                switches[x][y] = c / float(total)
+                switches[x][y] = c / float(total_switches)
 
         i_index = 0.0
 
-        # Sum all probabilities where there is a language switch
+        # Sum all probabilities of switching language
         for lang1, switch in switches.items():
                 for lang2, prob in switch.items():
                         if lang1 != lang2:
