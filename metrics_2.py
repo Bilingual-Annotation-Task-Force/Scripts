@@ -126,9 +126,9 @@ def get_spans(lang_tags):  # Include last span?
 
 
 if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description="Calculate various \
-                        metrics to describe CS behavior in \
-                        language-tagged corpora")
+        parser = argparse.ArgumentParser(
+                description=("Calculate various metrics to describe "
+                             "CS behavior in  language-tagged corpora"))
 
         # Optional arguments
         parser.add_argument(
@@ -139,10 +139,9 @@ if __name__ == "__main__":
                 help="languages in corpus")
         parser.add_argument(
                 "-d", "--delimiter",
-                nargs="?",
                 type=str,
                 default="\t",
-                help="delimiter for input file")
+                help="delimiter for input file (Default: tab)")
         parser.add_argument(
                 "-v", "--verbose",
                 action="store_true",
@@ -150,10 +149,10 @@ if __name__ == "__main__":
         parser.add_argument(
                 "-c", "--column",
                 metavar="n",
-                nargs="?",
                 type=int,
                 default=0,
-                help="zero-indexed language column in input file")
+                help=("language column in input file "
+                      "(Default: 0)"))
         parser.add_argument(
                 "--header",
                 action="store_true",
@@ -165,13 +164,13 @@ if __name__ == "__main__":
                 nargs="?",
                 type=argparse.FileType("r"),
                 default=sys.stdin,
-                help="File containing corpus")
+                help="corpus file (Default: stdin)")
         parser.add_argument(
                 "outfile",
                 nargs="?",
                 type=argparse.FileType("w"),
                 default=sys.stdout,
-                help="File containing metrics")
+                help="metrics file (Default: stdout)")
 
         args = parser.parse_args()
 
