@@ -37,7 +37,7 @@ def get_tags():
         if HEADER:
                 lang_tags = lang_tags[1:]
 
-        # Assume input has not other tags
+        # Assume input has no other tags
         if not LANGS:
                 LANGS = list(set(lang_tags))
         # Otherwise, filter out non-language tags
@@ -64,8 +64,9 @@ def get_m_metric(lang_tags):
         k = len(LANGS)
         total = len(lang_tags)
 
-        p_lang = {lang: 0 for lang in LANGS}
-        for lang in p_lang:
+        # Compute p_i^2 for all languages in text
+        p_lang = {}
+        for lang in LANGS:
                 p_lang[lang] = len([x for x in lang_tags if x == lang])
                 p_lang[lang] = (p_lang[lang] / float(total)) ** 2
 
@@ -81,11 +82,13 @@ def get_i_index(lang_tags):
 
         total = len(lang_tags) - 1
 
+        # Compute transition probabilites
         for (x, y), c in counts.items():
                 switches[x][y] = c / float(total)
 
         i_index = 0.0
 
+        # Sum all probabilities where there is a language switch
         for lang1, switch in switches.items():
                 for lang2, prob in switch.items():
                         if lang1 != lang2:
