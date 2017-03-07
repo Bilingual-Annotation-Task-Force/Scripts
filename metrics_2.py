@@ -6,6 +6,7 @@
 # language-tagged corpora.
 
 import sys
+import math
 import argparse
 import numpy as np
 from itertools import groupby
@@ -26,11 +27,15 @@ def main(argc, argv):
         i_index = get_i_index(lang_tags)
         burstiness = get_burstiness(lang_tags)
         memory = get_memory(lang_tags)
+        entropy = get_entropy(lang_tags)
+        lang_entropy = get_lang_entropy(lang_tags)
 
         print("M-metric: {}".format(m_metric))
         print("I-index: {}".format(i_index))
         print("Burstiness: {}".format(burstiness))
         print("Memory: {}".format(memory))
+        print("Entropy: {}".format(entropy))
+        print("Language Entropy: {}".format(lang_entropy))
 
 
 def get_tags():
@@ -54,18 +59,23 @@ def get_tags():
         else:
                 lang_tags = [lang for lang in lang_tags if lang in LANGS]
 
+        # Print working set of language tags if needed
+        if VERBOSE:
+                print("Set of language tags: {}".format(LANGS))
+
         return lang_tags
 
 
-def get_m_metric(lang_tags):
+def get_m_metric(lang_tags):  # Change to use Counter!
         num_langs = len(LANGS)
         total_tags = len(lang_tags)
+        counts = Counter(lang_tags)
+
 
         # Compute p_i^2 for all languages in text
         p_lang = {}
-        for lang in LANGS:
-                p_lang[lang] = len([x for x in lang_tags if x == lang])
-                p_lang[lang] = (p_lang[lang] / float(total_tags)) ** 2
+        for lang, count in counts.items():
+                p_lang[lang] = (count / float(total_tags)) ** 2
 
         p_sum = sum(p_lang.values())
         m_metric = (1 - p_sum) / ((num_langs - 1) * p_sum)
@@ -119,14 +129,53 @@ def get_memory(lang_tags):
         return memory
 
 
-def get_spans(lang_tags):  # Include last span?
+def get_spans(lang_tags):
         return [len(list(group)) for lang, group in groupby(lang_tags)]
+
+
+def get_switchpoints(lang_tags):
+        switchpoints = []
+
+        for index, tag in enumerate(lang_tags[1:]):
+                if tag != lang_tags[index - 1]:
+                        switchpoints.append(index)
+
+        return switchpoints
+
+
+def get_entropy(lang_tags):
+        # Count frequencies of language tokens
+        counts = Counter(lang_tags)
+        total_count = len(lang_tags)
+
+        # Compute entropy based on unigram language tokens
+        entropy = 0.0
+        for lang, count in counts.items():
+                lang_prob = count / float(total_count)
+                entropy -= lang_prob * math.log2(lang_prob)
+
+        return entropy
+
+
+def get_lang_entropy(lang_tags):
+        # Get frequencies of language spans
+        span_lengths = get_spans(lang_tags)
+        span_counts = Counter(span_lengths)
+        total_count = len(span_lengths)
+
+        # Compute entropy based on spans of language tokens
+        lang_entropy = 0.0
+        for length, count in span_counts.items():
+                span_prob = count / float(total_count)
+                lang_entropy -= span_prob * math.log2(span_prob)
+
+        return lang_entropy
 
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
                 description=("Calculate various metrics to describe "
-                             "CS behavior in  language-tagged corpora"))
+                             "CS behavior in language-tagged corpora"))
 
         # Optional arguments
         parser.add_argument(
@@ -134,7 +183,7 @@ if __name__ == "__main__":
                 metavar=("lang1", "lang2"),
                 nargs=2,
                 default=[],
-                help="languages in corpus")
+                help="languages in corpus (Default: all)")
         parser.add_argument(
                 "-d", "--delimiter",
                 type=str,
@@ -154,7 +203,7 @@ if __name__ == "__main__":
         parser.add_argument(
                 "--header",
                 action="store_true",
-                help="header flag")
+                help="header flag  (Default: False)")
 
         # Positional arguments
         parser.add_argument(

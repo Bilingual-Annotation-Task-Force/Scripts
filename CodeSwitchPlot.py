@@ -18,7 +18,7 @@ def main(argv):
 	goldTags = io.open(argv[0], 'r', encoding='utf8').readlines()
 	smooth = int(argv[1]) if len(sys.argv) >= 3 else default_smooth
 	tags = [x.strip() for x in goldTags]
-	tags = tags # Add default slice values?
+	tags = tags[:1000] # Add default slice values?
 	num_tags = [1 if x == valid_tags[0] else -1 for x in tags]
 	N = len(num_tags)
 	T = 1/float(N) # Assuming regular sampling
@@ -27,6 +27,7 @@ def main(argv):
 	y = num_tags
 	w = scipy.fftpack.rfft(y)
 	f = scipy.fftpack.rfftfreq(N, x[1] - x[0])
+	w[0] = 0
 	spectrum = w**2
 	cutoff_idx = spectrum < (spectrum.max() / smooth)
 	w2 = w.copy()
@@ -52,7 +53,8 @@ def main(argv):
 
 	sub3 = fig.add_subplot(324) # What is a good cutoff?
 	sub3.set_title('Smoothed FFT')
-	sub3.set_xticks(np.arange(N/2, step=step/2), minor=True)
+	sub3.set_xticks(np.arange(100, 2), minor=True)
+	sub3.set_xlim([0, 100])
 	sub3.plot(x2, w2**2)
 
 	sub4 = fig.add_subplot(313) # ???
