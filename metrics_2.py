@@ -14,32 +14,44 @@ from collections import Counter
 
 LANGS = []
 LANGCOL = 0
+NUMTAGS = 0
 DELIMITER = "\t"
 HEADER = False
 VERBOSE = False
+SWITCHPOINTS = False
 INFILE = 0
 OUTFILE = 0
 
 
 def main(argc, argv):
         lang_tags = get_tags()
+        num_switches = get_num_switchpoints(lang_tags)
         m_metric = get_m_metric(lang_tags)
         i_index = get_i_index(lang_tags)
         burstiness = get_burstiness(lang_tags)
         memory = get_memory(lang_tags)
-        entropy = get_entropy(lang_tags)
         lang_entropy = get_lang_entropy(lang_tags)
+        span_entropy = get_span_entropy(lang_tags)
 
+        print("Length of corpus: {}".format(NUMTAGS))
+        print("Number of switchpoints: {}".format(num_switches))
         print("M-metric: {}".format(m_metric))
         print("I-index: {}".format(i_index))
         print("Burstiness: {}".format(burstiness))
         print("Memory: {}".format(memory))
-        print("Entropy: {}".format(entropy))
         print("Language Entropy: {}".format(lang_entropy))
+        print("Span Entropy: {}".format(span_entropy))
+
+        if SWITCHPOINTS:
+                switchpoints = get_switchpoints(lang_tags)
+                with open("Change_Vector.txt", mode="wt") as target:
+                        target.write("\n".join(str(switch) for switch in
+                                switchpoints))
+                        target.write("\n")
 
 
 def get_tags():
-        global LANGS, LANGCOL, DELIMITER, VERBOSE
+        global LANGS, NUMTAGS
 
         lang_tags = []
 
@@ -59,6 +71,8 @@ def get_tags():
         else:
                 lang_tags = [lang for lang in lang_tags if lang in LANGS]
 
+        NUMTAGS = len(lang_tags)
+
         # Print working set of language tags if needed
         if VERBOSE:
                 print("Set of language tags: {}".format(LANGS))
@@ -66,16 +80,25 @@ def get_tags():
         return lang_tags
 
 
-def get_m_metric(lang_tags):  # Change to use Counter!
+def get_num_switchpoints(lang_tags):
+        num_switches = 0
+
+        for index, tag in enumerate(lang_tags[1:]):
+                if tag != lang_tags[index - 1]:
+                        num_switches += 1
+
+        return num_switches
+
+
+def get_m_metric(lang_tags):
         num_langs = len(LANGS)
-        total_tags = len(lang_tags)
         counts = Counter(lang_tags)
 
 
         # Compute p_i^2 for all languages in text
         p_lang = {}
         for lang, count in counts.items():
-                p_lang[lang] = (count / float(total_tags)) ** 2
+                p_lang[lang] = (count / float(NUMTAGS)) ** 2
 
         p_sum = sum(p_lang.values())
         m_metric = (1 - p_sum) / ((num_langs - 1) * p_sum)
@@ -85,14 +108,12 @@ def get_m_metric(lang_tags):  # Change to use Counter!
 
 def get_i_index(lang_tags):
         # Count number of language switches for each language
-        switches = {lang: {} for lang in set(lang_tags)}
+        switches = {lang: {} for lang in LANGS}
         counts = Counter(zip(lang_tags, lang_tags[1:]))
-
-        total_switches = len(lang_tags) - 1
 
         # Compute transition probabilities
         for (x, y), c in counts.items():
-                switches[x][y] = c / float(total_switches)
+                switches[x][y] = c / float(NUMTAGS - 1)
 
         i_index = 0.0
 
@@ -130,46 +151,49 @@ def get_memory(lang_tags):
 
 
 def get_spans(lang_tags):
+        # List of span lengths
         return [len(list(group)) for lang, group in groupby(lang_tags)]
 
 
 def get_switchpoints(lang_tags):
         switchpoints = []
 
-        for index, tag in enumerate(lang_tags[1:]):
-                if tag != lang_tags[index - 1]:
-                        switchpoints.append(index)
+        # Compute vector of switch indices
+        for index, tag in enumerate(lang_tags[:-1]):
+                if tag != lang_tags[index + 1]:
+                        switchpoints.append(index + 1)
+                else:
+                        switchpoints.append(0)
 
         return switchpoints
 
 
-def get_entropy(lang_tags):
+def get_lang_entropy(lang_tags):
         # Count frequencies of language tokens
         counts = Counter(lang_tags)
-        total_count = len(lang_tags)
 
         # Compute entropy based on unigram language tokens
-        entropy = 0.0
+        lang_entropy = 0.0
         for lang, count in counts.items():
-                lang_prob = count / float(total_count)
-                entropy -= lang_prob * math.log2(lang_prob)
+                lang_prob = count / float(NUMTAGS)
+                lang_entropy -= lang_prob * math.log2(lang_prob)
 
-        return entropy
+        return lang_entropy
 
 
-def get_lang_entropy(lang_tags):
+def get_span_entropy(lang_tags):
         # Get frequencies of language spans
         span_lengths = get_spans(lang_tags)
         span_counts = Counter(span_lengths)
         total_count = len(span_lengths)
 
         # Compute entropy based on spans of language tokens
-        lang_entropy = 0.0
+        span_entropy = 0.0
         for length, count in span_counts.items():
                 span_prob = count / float(total_count)
-                lang_entropy -= span_prob * math.log2(span_prob)
+                span_entropy -= span_prob * math.log2(span_prob)
 
-        return lang_entropy
+        return span_entropy
 
 
 if __name__ == "__main__":
@@ -192,7 +216,7 @@ if __name__ == "__main__":
         parser.add_argument(
                 "-v", "--verbose",
                 action="store_true",
-                help="verbose flag")
+                help="verbose flag (Default: False)")
         parser.add_argument(
                 "-c", "--column",
                 metavar="n",
@@ -204,6 +228,11 @@ if __name__ == "__main__":
                 "--header",
                 action="store_true",
                 help="header flag  (Default: False)")
+        parser.add_argument(
+                "--switchpoints",
+                action="store_true",
+                help=("Compute vector of switchpoints "
+                      "(Default: False)"))
 
         # Positional arguments
         parser.add_argument(
@@ -227,6 +256,9 @@ if __name__ == "__main__":
         if args.header:
                 HEADER = True
 
+        if args.switchpoints:
+                SWITCHPOINTS = True
+
         DELIMITER = args.delimiter
         INFILE = args.infile
         LANGCOL = args.column
@@ -234,3 +266,6 @@ if __name__ == "__main__":
         OUTFILE = args.outfile
 
         main(len(sys.argv), sys.argv)
+
+        args.infile.close()
+        args.outfile.close()
