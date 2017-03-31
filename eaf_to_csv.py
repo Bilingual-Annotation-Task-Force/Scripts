@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+
 # using Python 2.7.13
 # Written March 4th, 2017
+# Last updated March 31st, 2017
 
 # This script converts a .eaf file to a .csv file, under the following assumptions:
     ## The .eaf file has a list of time slots in <ANNOTATION_DOCUMENT><TIME_ORDER>
@@ -45,8 +48,17 @@ def main(argv):
                 language = child
 
     if not (timeorder and words and syntax and language):
-        print "One of the needed sections seems to be missing. Terminating."
-        sys.exit()
+		if not timeorder:
+			print "Missing TIME_ORDER section."
+		if not words:
+			print "Missing LINGUISTIC_TYPE_REF=\"Words\" tier."
+		if not syntax:
+			print "Missing LINGUISTIC_TYPE_REF=\"Syntax\" tier."
+		if not language:
+			print "Missing LINGUISTIC_TYPE_REF=\"Language\" tier."
+		
+		print "One of the needed sections seems to be missing. Terminating."
+		sys.exit()
     else:
         print "Found everything. Ready to start parsing."
     
