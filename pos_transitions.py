@@ -64,7 +64,7 @@ def main(argc, argv):
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
                 description=("Compute transitions of POS tags and languages"
-                            " over all instances of token transitions"))
+                            " over all tokens"))
 
         # Optional arguments
         parser.add_argument(
