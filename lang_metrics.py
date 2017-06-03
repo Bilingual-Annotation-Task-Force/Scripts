@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# metrics.py
+# lang_metrics.py
 # Using Python 3.4.3
 #
 # PURPOSE: Calculate various metrics to describe code-switching behavior in
@@ -13,86 +13,80 @@ from itertools import groupby
 from collections import Counter
 
 LANGS = []
+LANG_TAGS = []
 LANGCOL = 0
 NUMTAGS = 0
 DELIMITER = "\t"
 HEADER = False
 VERBOSE = False
-SWITCHPOINTS = False
 INFILE = 0
 OUTFILE = 0
 
 
-def main(argc, argv):
-        lang_tags = get_tags()
-        num_switches = get_num_switchpoints(lang_tags)
-        m_metric = get_m_metric(lang_tags)
-        i_index = get_i_index(lang_tags)
-        burstiness = get_burstiness(lang_tags)
-        memory = get_memory(lang_tags)
-        lang_entropy = get_lang_entropy(lang_tags)
-        span_entropy = get_span_entropy(lang_tags)
+def main(func):
+        global LANGS, NUMTAGS, LANG_TAGS
 
-        print("Length of corpus: {}".format(NUMTAGS))
-        print("Number of switchpoints: {}".format(num_switches))
-        print("M-metric: {}".format(m_metric))
-        print("I-index: {}".format(i_index))
-        print("Burstiness: {}".format(burstiness))
-        print("Memory: {}".format(memory))
-        print("Language Entropy: {}".format(lang_entropy))
-        print("Span Entropy: {}".format(span_entropy))
-
-        if SWITCHPOINTS:
-                switchpoints = get_switchpoints(lang_tags)
-                with open("Change_Vector.txt", mode="wt") as target:
-                        target.write("\n".join(str(switch) for switch in
-                                switchpoints))
-                        target.write("\n")
-
-
-def get_tags():
-        global LANGS, NUMTAGS
-
-        lang_tags = []
-
-        # Read all language tags
         for line in INFILE:
                 lang_tag = line.split(DELIMITER)[LANGCOL]
-                lang_tags.append(lang_tag.strip())
+                LANG_TAGS.append(lang_tag.strip())
 
         # Skip first line if header specified
         if HEADER:
-                lang_tags = lang_tags[1:]
+                LANG_TAGS = LANG_TAGS[1:]
 
         # Assume input has no other tags
         if not LANGS:
-                LANGS = list(set(lang_tags))
+                LANGS = list(set(LANG_TAGS))
         # Otherwise, filter out non-language tags
         else:
-                lang_tags = [lang for lang in lang_tags if lang in LANGS]
+                LANG_TAGS = [lang for lang in LANG_TAGS if lang in LANGS]
 
-        NUMTAGS = len(lang_tags)
+        NUMTAGS = len(LANG_TAGS)
 
         # Print working set of language tags if needed
         if VERBOSE:
                 print("Set of language tags: {}".format(LANGS))
+                print("Length of corpus: {}".format(NUMTAGS))
 
-        return lang_tags
+        func_map = {
+                'metrics': metrics,
+                'm_metric': m_metric,
+                'i_metric': i_metric,
+                'burstiness': burstiness,
+                'memory': memory,
+                'spans': spans,
+                'span_summary': span_summary,
+                'switchpoints': switchpoints,
+                'lang_entropy': lang_entropy,
+                'span_entropy': span_entropy,
+                }
+
+        func_map[func]()
 
 
-def get_num_switchpoints(lang_tags):
+def metrics():
+        num_switchpoints()
+        m_metric()
+        i_metric()
+        burstiness()
+        memory()
+        lang_entropy()
+        span_entropy()
+
+
+def num_switchpoints():
         num_switches = 0
 
-        for index, tag in enumerate(lang_tags[1:]):
-                if tag != lang_tags[index - 1]:
+        for index, tag in enumerate(LANG_TAGS[1:]):
+                if tag != LANG_TAGS[index - 1]:
                         num_switches += 1
 
-        return num_switches
+        print("Number of switchpoints: {}".format(num_switches))
 
 
-def get_m_metric(lang_tags):
+def m_metric():
         num_langs = len(LANGS)
-        counts = Counter(lang_tags)
+        counts = Counter(LANG_TAGS)
 
 
         # Compute p_i^2 for all languages in text
@@ -103,39 +97,40 @@ def get_m_metric(lang_tags):
         p_sum = sum(p_lang.values())
         m_metric = (1 - p_sum) / ((num_langs - 1) * p_sum)
 
-        return m_metric
+        print("M-metric: {}".format(m_metric))
 
 
-def get_i_index(lang_tags):
+def i_metric():
         # Count number of language switches for each language
         switches = {lang: {} for lang in LANGS}
-        counts = Counter(zip(lang_tags, lang_tags[1:]))
+        counts = Counter(zip(LANG_TAGS, LANG_TAGS[1:]))
 
         # Compute transition probabilities
         for (x, y), c in counts.items():
                 switches[x][y] = c / float(NUMTAGS - 1)
 
-        i_index = 0.0
+        i_metric = 0.0
 
         # Sum all probabilities of switching language
         for lang1, switch in switches.items():
                 for lang2, prob in switch.items():
                         if lang1 != lang2:
-                                i_index += prob
+                                i_metric += prob
 
-        return i_index
+        print("I-metric: {}".format(i_metric))
 
 
-def get_burstiness(lang_tags):
-        spans = get_spans(lang_tags)
+def burstiness():
+        spans = [len(list(group)) for lang, group in groupby(LANG_TAGS)]
         mean = np.mean(spans)
         sd = np.std(spans)
+        burstiness = (sd - mean)/(sd + mean)
 
-        return (sd - mean)/(sd + mean)
+        print("Burstiness: {}".format(burstiness))
 
 
-def get_memory(lang_tags):
-        spans = get_spans(lang_tags)
+def memory():
+        spans = [len(list(group)) for lang, group in groupby(LANG_TAGS)]
         mean1 = np.mean(spans[:-1])
         mean2 = np.mean(spans[1:])
         sd1 = np.std(spans[:-1])
@@ -147,30 +142,45 @@ def get_memory(lang_tags):
 
         memory /= (len(spans) - 1) * (sd1 * sd2)
 
-        return memory
+        print("Memory: {}".format(memory))
 
 
-def get_spans(lang_tags):
-        # List of span lengths
-        return [len(list(group)) for lang, group in groupby(lang_tags)]
+def spans():
+        spans = [(lang, len(list(group))) for lang, group in groupby(LANG_TAGS)]
+
+        print("Lang\tLength")
+
+        for lang, length in spans:
+                print("{}\t{}".format(lang, length))
 
 
-def get_switchpoints(lang_tags):
+def span_summary():
+        spans = sorted([(lang, len(list(group))) for lang, group in groupby(LANG_TAGS)])
+        spans = sorted([(c, len(list(cgen))) for c, cgen in groupby(spans)])
+
+        print("Lang\tSpanLength\tSpanFreq")
+
+        for (lang, length), freq in spans:
+                print("{}\t{}\t{}".format(lang, length, freq))
+
+
+def switchpoints():
         switchpoints = []
 
         # Compute vector of switch indices
-        for index, tag in enumerate(lang_tags[:-1]):
-                if tag != lang_tags[index + 1]:
+        for index, tag in enumerate(LANG_TAGS[:-1]):
+                if tag != LANG_TAGS[index + 1]:
                         switchpoints.append(index + 1)
                 else:
                         switchpoints.append(0)
 
-        return switchpoints
+        for switch in switchpoints:
+                print("{}".format(switch))
 
 
-def get_lang_entropy(lang_tags):
+def lang_entropy():
         # Count frequencies of language tokens
-        counts = Counter(lang_tags)
+        counts = Counter(LANG_TAGS)
 
         # Compute entropy based on unigram language tokens
         lang_entropy = 0.0
@@ -178,14 +188,14 @@ def get_lang_entropy(lang_tags):
                 lang_prob = count / float(NUMTAGS)
                 lang_entropy -= lang_prob * math.log2(lang_prob)
 
-        return lang_entropy
+        print("Language Entropy: {}".format(lang_entropy))
 
 
-def get_span_entropy(lang_tags):
+def span_entropy():
         # Get frequencies of language spans
-        span_lengths = get_spans(lang_tags)
-        span_counts = Counter(span_lengths)
-        total_count = len(span_lengths)
+        spans = [len(list(group)) for lang, group in groupby(LANG_TAGS)]
+        span_counts = Counter(spans)
+        total_count = len(spans)
 
         # Compute entropy based on spans of language tokens
         span_entropy = 0.0
@@ -193,7 +203,7 @@ def get_span_entropy(lang_tags):
                 span_prob = count / float(total_count)
                 span_entropy -= span_prob * math.log2(span_prob)
 
-        return span_entropy
+        print("Span Entropy: {}".format(span_entropy))
 
 
 if __name__ == "__main__":
@@ -229,10 +239,13 @@ if __name__ == "__main__":
                 action="store_true",
                 help="header flag  (Default: False)")
         parser.add_argument(
-                "--switchpoints",
-                action="store_true",
-                help=("Compute vector of switchpoints "
-                      "(Default: False)"))
+                "-f", "--function",
+                type=str,
+                default="metrics",
+                help=("Possible functions: "
+                      "metrics, m_metric, i_metric, burstiness, memory, "
+                      "spans, span_summary, switchpoints, lang_entropy, "
+                      "span_entropy. (Default: metrics)"))
 
         # Positional arguments
         parser.add_argument(
@@ -256,16 +269,13 @@ if __name__ == "__main__":
         if args.header:
                 HEADER = True
 
-        if args.switchpoints:
-                SWITCHPOINTS = True
-
         DELIMITER = args.delimiter
         INFILE = args.infile
         LANGCOL = args.column
         LANGS = args.langs
         OUTFILE = args.outfile
 
-        main(len(sys.argv), sys.argv)
+        main(args.function)
 
         args.infile.close()
         args.outfile.close()
