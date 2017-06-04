@@ -2,9 +2,9 @@
 # pangloss_xml_to_tsv.py
 # Using Python 3.4.3
 #
-# PURPOSE: Convert Pangloss XML files to TSV format
+"""Convert Pangloss XML files to TSV format"""
 
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as EleTree
 
 import sys
 import argparse
@@ -13,10 +13,11 @@ VERBOSE = False
 INFILE = 0
 OUTFILE = 0
 
-def main(argc, argv):
+
+def main():
     OUTFILE.write("Token\tSentence\tTranslation\tLanguage\n")
 
-    tree = ET.parse(INFILE)
+    tree = EleTree.parse(INFILE)
     root = tree.getroot()
 
     for s in root.findall("./S"):
@@ -33,36 +34,35 @@ def main(argc, argv):
             OUTFILE.write("{}\t{}\t{}\t{}\n".format(token, sentence, trans, lang))
 
 
-
 if __name__ == "__main__":
     global VERBOSE, INFILE, OUTFILE
 
     parser = argparse.ArgumentParser(
-            description=("Convert Paris XML files to TSV format"))
+        description="Convert Paris XML files to TSV format")
 
     # Optional arguments
     parser.add_argument(
-            "-v", "--verbose",
-            action="store_true",
-            help="verbose flag")
+        "-v", "--verbose",
+        action="store_true",
+        help="verbose flag")
     parser.add_argument(
-            "-i", "--in-place",
-            action="store_true",
-            help="write to file of same name as input")
+        "-i", "--in-place",
+        action="store_true",
+        help="write to file of same name as input")
 
     # Positional arguments
     parser.add_argument(
-            "infile",
-            nargs="?",
-            type=argparse.FileType("r"),
-            default=sys.stdin,
-            help="corpus file (Default: stdin)")
+        "infile",
+        nargs="?",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+        help="corpus file (Default: stdin)")
     parser.add_argument(
-            "outfile",
-            nargs="?",
-            type=argparse.FileType("w"),
-            default=sys.stdout,
-            help="output file (Default: stdout)")
+        "outfile",
+        nargs="?",
+        type=argparse.FileType("w"),
+        default=sys.stdout,
+        help="output file (Default: stdout)")
 
     args = parser.parse_args()
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         filename = args.infile.name.split(".")[0]
         OUTFILE = open(filename + ".tsv", "wt")
 
-    main(len(sys.argv), sys.argv)
+    main()
 
     args.infile.close()
     args.outfile.close()

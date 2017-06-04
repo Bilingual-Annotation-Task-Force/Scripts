@@ -1,123 +1,133 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # stats.py
-# Using Python 2.7.12
+# Using Python 3.5.2
 
 import io
 import sys
+from typing import Dict, List
 
-langs = [u'Eng', u'Spn', u'NamedEnt']
+# region Tags
 
-def main(argv):
-	lines = []
+L0_TAG = "Eng"
+L1_TAG = "Spn"
+NE_TAG = "NamedEnt"
 
-	if len(sys.argv) == 2:
-		f = io.open(argv[0], "r", encoding="utf8").readlines()
-		lines = [x.strip() for x in f]
-	else:
-		for line in sys.stdin:
-			lines.append(line.strip())
+TAG_LIST = [L0_TAG, L1_TAG, NE_TAG]
+LANG_TAGS = [L0_TAG, L1_TAG]
+SPECIAL_TAGS = [NE_TAG]
+GOLD_MATCH = {L0_TAG: "Eng", L1_TAG: "Spn", NE_TAG: "NamedEnt"}
+PROCESSED_MATCH = {L0_TAG: "Eng", L1_TAG: "Spn", NE_TAG: "NamedEnt"}
 
-	lines = [x.split() for x in lines]
-	lines = [x for x in lines if x[0] in langs]
+# endregion
 
-	# Better way to do this?
-	goldlist = [x[0] for x in lines]
-	taglist = [x[1] for x in lines]
-	nentlist = [x[2] for x in lines]
+# region Stats
 
-	TP = "TP"
-	FN = "FN"
-	FP = "FP"
-	TN = "TN"
+TP = "tp"
+FN = "fn"
+FP = "fp"
+TN = "tn"
+PRELIM_STATS = [TP, FN, FP, TN]
 
-	counts = {tag : { TP : 0, FN : 0, FP : 0, TN : 0 } for tag in set(goldlist)}
+ACCURACY = "Accuracy"
+PRECISION = "Precision"
+RECALL = "Recall"
+STATS_LIST = [ACCURACY, PRECISION, RECALL]
 
-	# Lang 1
-	for (gold, tag) in zip(goldlist, taglist):
-		if gold == "Eng":
-			if tag == "Eng":
-				counts[langs[0]][TP] += 1
-			else:
-				counts[langs[0]][FN] += 1
-		else:
-			if tag == "Eng":
-				counts[langs[0]][FP] += 1
-			else:
-				counts[langs[0]][TN] += 1
+# region Formulae
 
-	print counts
 
-	# Lang 2
-	for (gold, tag) in zip(goldlist, taglist):
-		if gold == "Spn":
-			if tag == "Spn":
-				counts[langs[1]][TP] += 1
-			else:
-				counts[langs[1]][FN] += 1
-		else:
-			if tag == "Spn":
-				counts[langs[1]][FP] += 1
-			else:
-				counts[langs[1]][TN] += 1
+def accuracy_calc(tp, fn, fp, tn, **kwargs):
+    """Accuracy = (TP + TN)/(TP + TN + FP + FN)"""
+    pre = tp + tn
+    return pre / float(fp + fn + pre)
 
-	print counts
 
-	# Named Entities
-	for (gold, nent) in zip(goldlist, nentlist):
-		if gold == "NamedEnt":
-			if nent != "O":
-				counts[langs[2]][TP] += 1
-			else:
-				counts[langs[2]][FN] += 1
-		else:
-			if nent != "O":
-				counts[langs[2]][FP] += 1
-			else:
-				counts[langs[2]][TN] += 1
+def precision_calc(tp, fp, **kwargs):
+    """Precision = TP/(TP + FP)"""
+    return tp / float(tp + fp)
 
-	print counts
 
-	# Accuracy = (TP + TN)/(TP + TN + FP + FN)
-	# Precision = TP/(TP + FP)
-	# Recall = TP/(TP + FN)
-	accEng = counts["Eng"][TP] + counts["Eng"][TN]
-	accEng = accEng / float(counts["Eng"][FP] + counts["Eng"][FN] + accEng)
+def recall_calc(tp, fn, **kwargs):
+    """Recall = TP / (TP + FN)"""
+    return tp / float(tp + fn)
 
-	precEng = counts["Eng"][TP] / float(counts["Eng"][TP] +
-			counts["Eng"][FP])
 
-	recEng = counts["Eng"][TP] / float(counts["Eng"][TP] +
-			counts["Eng"][FN])
+# endregion
 
-	print "Eng: Accuracy {}, Precision {}, Recall {}".format(accEng,
-			precEng, recEng)
+STATS_FUNC_DICT = {
+    ACCURACY: accuracy_calc,
+    PRECISION: precision_calc,
+    RECALL: recall_calc
+}
 
-	
-	accSpn = counts["Spn"][TP] + counts["Spn"][TN]
-	accSpn = accSpn / float(counts["Spn"][FP] + counts["Spn"][FN] + accSpn)
 
-	precSpn = counts["Spn"][TP] / float(counts["Spn"][TP] +
-			counts["Spn"][FP])
+# endregion
 
-	recSpn = counts["Spn"][TP] / float(counts["Spn"][TP] +
-			counts["Spn"][FN])
 
-	print "Spn: Accuracy {}, Precision {}, Recall {}".format(accSpn,
-			precSpn, recSpn)
+def calc_stats(counts: Dict[str, Dict[str, int]]) -> Dict[str, Dict[str, int]]:
+    """Calculate all stats in the dictionary STATS_FUNC for tags in TAG_LIST and stats in STATS_LIST.
 
-	
+    :param counts: Double layered dictionary of tags to preliminary stats to values
+    :return: Values of the calculated stats
+    """
+    calc = {}
+    for tag in TAG_LIST:
+        calc[tag] = {}
+        print(tag, ":", sep="", end="")
+        for stat in STATS_LIST:
+            calc[tag][stat] = STATS_FUNC_DICT[stat](**counts[tag])
+            print(stat, " ", calc[tag][stat], ",", sep="", end="")
+    return calc
 
-	accNent = counts["NamedEnt"][TP] + counts["NamedEnt"][TN]
-	accNent = accNent / float(counts["NamedEnt"][FP] + counts["NamedEnt"][FN] + accNent)
 
-	precNent = counts["NamedEnt"][TP] / float(counts["NamedEnt"][TP] +
-			counts["NamedEnt"][FP])
+def count(tag, orig_tag, check_tag, counts):
+    # Count the respective values
+    if orig_tag == GOLD_MATCH[tag]:
+        if check_tag == PROCESSED_MATCH[tag]:
+            counts[tag][TP] += 1
+        else:
+            counts[tag][FN] += 1
+    else:
+        if check_tag == tag:
+            counts[tag][FP] += 1
+        else:
+            counts[tag][TN] += 1
 
-	recNent = counts["NamedEnt"][TP] / float(counts["NamedEnt"][TP] +
-			counts["NamedEnt"][FN])
 
-	print "NamedEnt: Accuracy {}, Precision {}, Recall {}".format(accNent,
-			precNent, recNent)
+def main(argv: List[str]) -> None:
+    """Takes processed data and converts it into a set of statistics for the processing program.
+
+    :param argv: Either the file in question, or the source file.
+    """
+    lines = []
+    if len(sys.argv) == 1:
+        with open(argv[0], "r", encoding="utf8") as file:
+            lines = file.readlines()
+        lines = map(lambda padded_line: padded_line.strip(), lines)
+    else:
+        for line in sys.stdin:
+            lines.append(line.strip())
+    lines = [x.split() for x in lines]
+    lines = [x for x in lines if x[0] in TAG_LIST]
+
+    # Transpose tag listings
+    (gold_list, processed_list, special_list) = map(list, zip(*lines))
+    special_list = list(map(lambda d: "Something not the tag" if d == "O" else "NamedEnt", special_list))
+
+    # Make a dictionary of dictionaries of preliminary stats
+    counts = {tag: {TP: 0, FN: 0, FP: 0, TN: 0} for tag in TAG_LIST}
+
+    # For every pair of gold standard and processed tags
+    for (gold_tag, processed_tag, special_tag) in zip(gold_list, processed_list, special_list):
+        # For each tag
+        for tag in LANG_TAGS:
+            count(tag, gold_tag, processed_tag, counts)
+        for tag in SPECIAL_TAGS:
+            count(tag, gold_tag, special_tag, counts)
+    print(counts)
+
+    calc_stats(counts)
+
 
 if __name__ == "__main__":
-	main(sys.argv[1:])
+    main(sys.argv[1:])
