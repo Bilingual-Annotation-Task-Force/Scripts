@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# oov_remover.py
+# compile.py
 
 import os
 

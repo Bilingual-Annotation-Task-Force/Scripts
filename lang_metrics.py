@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # lang_metrics.py
 # Using Python 3.4.3
-#
-# PURPOSE: Calculate various metrics to describe code-switching behavior in
-# language-tagged corpora.
+"""PURPOSE: Calculate various metrics to describe code-switching behavior in language-tagged corpora."""
 
 import sys
 import math
