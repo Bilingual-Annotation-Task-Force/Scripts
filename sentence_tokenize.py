@@ -47,6 +47,7 @@ def main():
         searchstart = index + len( sent )
 
     if args.output_folder:
+        print( args.output_folder )
         os.chdir( args.output_folder )
     print( '\nWriting output file 1...' )        
     outfilename = firstpart + ' (sentence-tokenized).txt'

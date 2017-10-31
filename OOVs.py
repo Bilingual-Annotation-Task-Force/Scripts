@@ -24,9 +24,6 @@ Example command line input:
 """
 
 
-
-"""Define methods"""
-
 def PyDict(): #for default D2 argument in OOV_remove
     '''Returns PyDictionary object'''
     
