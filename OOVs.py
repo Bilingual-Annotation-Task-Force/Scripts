@@ -4,9 +4,6 @@ Eric Nordstrom
 Python 3.6.0
 4/29/17
 
-Version 4
-Update: Now command-line friendly.
-
 Removes out-of-vocabulary (OOV) words, a.k.a. "mixed words", from the provided series of
 tokens. Words are deemed OOV when they are not found in either provided language dictionary.
 Results are stored in .TXT file(s) specified by the user. PyDictionary option available for
@@ -163,54 +160,53 @@ def destwrite( words, help_message ):
     dest.close()
     print( "Writing complete. File saved." )
 
+def main():
+    import argparse
+    parser = argparse.ArgumentParser( description = 'Locate, remove, and record out-of-vocabulary (OOV) words, a.k.a. "mixed words"' )
 
+    parser.add_argument( "TOKENS", help="Name of the .TXT file containing corpus tokens." )
+    parser.add_argument( "D1", help="Name of the language 1 dictionary .TXT file" )
+    parser.add_argument( "D2", help='Name of the language 2 dictionary .TXT file. Enter "." for PyDictionary (requires PyDictionary module and reliable internet connection). NOTE: PyDictionary only for English; English dictionary must be D2 if using PyDictionary.' )
+    parser.add_argument( "-t", "--TOKENS_encoding", help="Tokens .TXT file encoding type. Default used if not specified." )
+    parser.add_argument( "-d1", "--D1_encoding", help="Language 1 dictionary .TXT file encoding type. Default used if not specified." )
+    parser.add_argument( "-d2", "--D2_encoding", help="Language 2 dictionary .TXT file encoding type. Default used if not specified." )
+    parser.add_argument( "-cd", "--change_directory", help='Change the folder in which to locate .TXT files. NOTE: It is also possible to specify individual file locations by including the entire path starting from "C:\".' )
 
-"""Command line interactions"""
+    args = parser.parse_args()
 
-import argparse
-parser = argparse.ArgumentParser()
+    if args.change_directory:
+        import os
+        os.chdir( args.change_directory )
 
-parser.add_argument( "TOKENS", help="Name of the .TXT file containing corpus tokens." )
-parser.add_argument( "D1", help="Name of the language 1 dictionary .TXT file" )
-parser.add_argument( "D2", help='Name of the language 2 dictionary .TXT file. Enter "." for PyDictionary (requires PyDictionary module and reliable internet connection). NOTE: PyDictionary only for English; English dictionary must be D2 if using PyDictionary.' )
-parser.add_argument( "-t", "--TOKENS_encoding", help="Tokens .TXT file encoding type. Default used if not specified." )
-parser.add_argument( "-d1", "--D1_encoding", help="Language 1 dictionary .TXT file encoding type. Default used if not specified." )
-parser.add_argument( "-d2", "--D2_encoding", help="Language 2 dictionary .TXT file encoding type. Default used if not specified." )
-parser.add_argument( "-cd", "--change_directory", help='Change the folder in which to locate .TXT files. NOTE: It is also possible to specify individual file locations by including the entire path starting from "C:\".' )
+    tokens = gettxt( args.TOKENS, args.TOKENS_encoding )
+    D1 = gettxt( args.D1, args.D1_encoding )
 
-args = parser.parse_args()
+    if args.D2 == ".":
 
-if args.change_directory:
-    import os
-    os.chdir( args.change_directory )
+        if args.D2_encoding:
+            raise RuntimeError( "Both PyDictionary option and encoding type specified for D2." )
+        
+        D2 = PyDict()
+        
+    else:
+        D2 = gettxt( args.D2, args.D2_encoding )
 
-tokens = gettxt( args.TOKENS, args.TOKENS_encoding )
-D1 = gettxt( args.D1, args.D1_encoding )
+    print( "\nRemoving OOVs...\n" )
+    ( tokens_without_OOVs, OOVs ) = OOV_remove( tokens, D1, D2 )
+    print( "\nOOVs removed.\n" )
 
-if args.D2 == ".":
+    help_message = '\nDestination .TXT file used to store tokens list after removing out-of-vocabulary (OOV) words, a.k.a. "mixed words". If destination file to be outside of current working directory, include file location path in name.'
+    destwrite( tokens_without_OOVs, help_message )
 
-    if args.D2_encoding:
-        raise RuntimeError( "Both PyDictionary option and encoding type specified for D2." )
-    
-    D2 = PyDict()
-    
-else:
-    D2 = gettxt( args.D2, args.D2_encoding )
+    prompt = "\nWrite removed OOVs to .TXT file? (Y/N): "
+    accepted_answers = { 'y', 'n' }
+    keep_OOVs = get_answer( prompt, accepted_answers )
 
-print( "\nRemoving OOVs...\n" )
-( tokens_without_OOVs, OOVs ) = OOV_remove( tokens, D1, D2 )
-print( "\nOOVs removed.\n" )
+    if keep_OOVs.lower() == 'y':
+        help_message = '\nDestination .TXT file used to store removed out-of-vocabulary (OOV) words, a.k.a. "mixed words", and their corresponding locations in the original tokens list. If destination file to be outside of current working directory, include file location path in name.'
+        destwrite( OOVs, help_message )
 
-help_message = '\nDestination .TXT file used to store tokens list after removing out-of-vocabulary (OOV) words, a.k.a. "mixed words". If destination file to be outside of current working directory, include file location path in name.'
-destwrite( tokens_without_OOVs, help_message )
+    print( "\nDone." )
 
-prompt = "\nWrite removed OOVs to .TXT file? (Y/N): "
-accepted_answers = { 'y', 'n' }
-keep_OOVs = get_answer( prompt, accepted_answers )
-
-if keep_OOVs.lower() == 'y':
-    help_message = '\nDestination .TXT file used to store removed out-of-vocabulary (OOV) words, a.k.a. "mixed words", and their corresponding locations in the original tokens list. If destination file to be outside of current working directory, include file location path in name.'
-    destwrite( OOVs, help_message )
-
-print( "\nDone." )
-
+if __name__ == "__main__":
+    main()
