@@ -6,10 +6,10 @@ Python 3.6.0
 
 #Referred to this link for sentence tokenizer: http://textminingonline.com/dive-into-nltk-part-ii-sentence-tokenize-and-word-tokenize
 #This script uses Punkt via nltk.data. According to the above webpage, Punkt supports 17 European languages.
-#The above link has instructions for downloading the necessary files.
+#The above link has instructions for downloading necessary files.
 
 def ispunc( TOK ):
-    '''whether a token is consists only of punctuation characters'''
+    '''whether a token consists only of punctuation characters'''
     return all([char in punc for char in TOK])
     
 def join_tokens( INTEXT ):
