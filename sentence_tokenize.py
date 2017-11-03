@@ -86,7 +86,7 @@ def main( accepted_file_types=['txt','tsv'],
                 n = 1
             path = path[:-n]
         elif path[-1].lower() == 'tokenizers':
-            path = path[-1]
+            path = path[:-1]
         folder = '\\'.join( path )
         os.chdir( folder )
     tokenizer = nltk.data.load( 'tokenizers/punkt/' + args.language + '.pickle' )
