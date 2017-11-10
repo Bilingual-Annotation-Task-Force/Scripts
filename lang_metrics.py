@@ -87,6 +87,11 @@ def num_switchpoints():
 def m_metric():
         num_langs = len(LANGS)
         counts = Counter(LANG_TAGS)
+        m_metric = 0.0
+
+        if num_langs == 1:
+                print("M-metric: {}".format(m_metric))
+                return
 
 
         # Compute p_i^2 for all languages in text
