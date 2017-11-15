@@ -1,12 +1,26 @@
 """
 Eric Nordstrom
 Python 3.6.0
-11/2/17
+11/15/17
 """
 
-#Referred to this link for sentence tokenizer: http://textminingonline.com/dive-into-nltk-part-ii-sentence-tokenize-and-word-tokenize
-#This script uses Punkt via nltk.data. According to the above webpage, Punkt supports 17 European languages.
-#The above link has instructions for downloading necessary files.
+##Referred to this link for sentence tokenizer: http://textminingonline.com/dive-into-nltk-part-ii-sentence-tokenize-and-word-tokenize
+##This script uses Punkt via the module nltk.data. According to the above webpage, Punkt supports 17 European languages.
+##The above link has instructions for downloading necessary files.
+##Further instructions are in the argparse help message.
+##Note: this tokenization will be imperfect for multilingual data because there is not yet a way to combine sentence tokenizers of multiple languages; one must be picked, and resulting
+##   sentences will have to be screened to ensure correct tokenization.
+
+##Example command line input:
+##    ..\dropbox\documents\compling\bats\"scripts (github)"\sentence_tokenize.py test.tsv english -tf ..\anaconda3\lib\site-packages
+##
+##    Explanation:
+##        This is the input I used to test the file. My working directory at the time of execution was the desktop, where I kept the input file "test.tsv"; hence, no address was necessary
+##        to specify the location of the file. The argument preceding "test.tsv" calls this script, which I keep in a folder called "Scripts (GitHub)". The third argument is the language
+##        of the selected tokenizer, or more specifically the name of the Punkt tokenizer ".pickle" file (a typo would cause a lookup error). Finally, I specified an optional argument
+##        instructing the script to locate the tokenizers folder in my Anaconda files where I have downloaded it and where it does not automatically check. Without additional arguments,
+##        the script writes the output file to the original working directory. Since it is a .tsv file, the result is a new .tsv with the original name followed by "(marked for sentence
+##        starts)" and contents including a new column marking the start of each sentence.
 
 def ispunc( TOK ):
     '''whether a token consists only of punctuation characters'''
@@ -18,13 +32,17 @@ def join_tokens( INTEXT ):
     from string import punctuation as punc
     lines = INTEXT.splitlines()
     corptext = ''
+    ncols = 0
     for line in lines:
-        tok = line.split('\t')[0]
+        items = line.split('\t')
+        tok = items[0]
+        if len( items ) > ncols:
+            ncols = len( items )
         if not(ispunc( tok )):
             corptext += ' '
         corptext += tok
     corptext = corptext.lstrip( ' ' )
-    return corptext, lines
+    return corptext, lines, ncols
 
 def disp_extns( extns, conj ):
     '''display a list of accepted file extensions in verbose form'''
@@ -68,9 +86,9 @@ def main( accepted_file_types=['txt','tsv'],
 
     #pre-process input file contents
     print( 'Pre-processing input file...\n' )
-    intext = open( args.text, encoding=args.encoding ).read()
+    intext = open( args.text, encoding=args.encoding ).read().strip()
     if infile_ext == 'tsv':
-        corptext, toks = join_tokens( intext )
+        corptext, toks, ncols = join_tokens( intext )
     elif infile_ext == 'txt':
         corptext = intext
     else:
@@ -110,7 +128,7 @@ def main( accepted_file_types=['txt','tsv'],
     else:
         rownum = 0
         for i in range( nsents ):
-            toks[rownum] += '\t' + tsv_sentstart_mark #mark start of sentence
+            toks[rownum] += '\t' * (ncols - toks[rownum].count('\t')) + tsv_sentstart_mark #mark start of sentence. NCOLS considered in case of inconsistent number of entries per row.
             sent = sents[i]
             sentlen = len( sent ) - sent.count( ' ' )
             lencount = 0
