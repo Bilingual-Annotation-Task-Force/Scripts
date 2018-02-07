@@ -3,10 +3,12 @@ Eric Nordstrom
 Python 3.6.0
 
 Metrics on a subset of POS tags
+** This script will probably be phased out. **
 """
 
 global defaults
-defaults = {'lang_col': 2,
+defaults = {'encoding': 'utf8',
+            'lang_col': 2,
             'POS_col': 3,
             'delimiter': '\t',
             'section_marker': 'SENT',
@@ -14,25 +16,6 @@ defaults = {'lang_col': 2,
 
 
 def preprocess(data, lang_col=defaults['lang_col'], POS_col=defaults['POS_col'], delimiter=defaults['delimiter'], multiple_sections=False, **marker_info):
-    '''Reformats tagged data into a list of lists (... of lists, if a series of separate sections) and removes any columns not for language and POS tags. The output will place the language column first and the POS column last. If the input data is a list, it will be formatted, and the output will be a clone of it.
-
-For multiple_sections = False:
-    data as <list <str>>: list of tokens represented as strings containing the entries of each column delimited by the specified delimiter
-    data as <str>: newline-delimited lines with each line representing a token and each column entry separated by the specified delimiter
-    data as <list <list <str>>>: only removes/reorganizes columns
-For multiple_sections = True:
-    data as <list> with elements as <list <str>>, <str>, or <list <list <str>>>, corresponding to the formats above: Each element of the data is considered one section and processed as above.
-    data as <str>: Data must be separated into sections; uses MARKER_INFO keywords to specify the section marker args below.
-        col <int> (optional): 1-indexed column number containing section markers (default: POS_col)
-        marker <str> (optional): section marker to search for (default: "{}")
-        ends <bool> (optional): whether the markers indicate the ends (True, default) or starts (False) of sections
-
-lang_col, <int>: 1-indexed column containing language tags
-POS_col, <int>: 1-indexed column containing POS tags
-delimiter, <str>: delimiter between each column entry within a line/token
-multiple_sections, <bool>: whether to treat as multiple sections to be evaluated separately (e.g. sentences)
-**marker_info: keyword arguments for splitting the data into sections (see DATA as <str> above)'''.format(defaults['section_marker'])
-
     if multiple_sections:
         if isinstance(data, str):
             # split sections
@@ -80,6 +63,28 @@ multiple_sections, <bool>: whether to treat as multiple sections to be evaluated
             if lang_col > POS_col:
                 line.reverse()
         return data
+
+
+preprocess.__doc__ = '''\
+Reformats tagged data into a list of lists (... of lists, if a series of separate sections) and removes any columns not for language and POS tags. The output will place the language column first and the POS column last. If the input data is a list, it will be formatted, and the output will be a clone of it.
+
+For multiple_sections = False:
+    data as <list <str>>: list of tokens represented as strings containing the entries of each column delimited by the specified delimiter
+    data as <str>: newline-delimited lines with each line representing a token and each column entry separated by the specified delimiter
+    data as <list <list <str>>>: only removes/reorganizes columns
+For multiple_sections = True:
+    data as <list> with elements as <list <str>>, <str>, or <list <list <str>>>, corresponding to the formats above: Each element of the data is considered one section and processed as above.
+    data as <str>: Data must be separated into sections; uses MARKER_INFO keywords to specify the section marker args below.
+        col <int> (optional): 1-indexed column number containing section markers (default: POS_col)
+        marker <str> (optional): section marker to search for (default: "{}")
+        ends <bool> (optional): whether the markers indicate the ends (True, default) or starts (False) of sections
+
+lang_col, <int>: 1-indexed column containing language tags
+POS_col, <int>: 1-indexed column containing POS tags
+delimiter, <str>: delimiter between each column entry within a line/token
+multiple_sections, <bool>: whether to treat as multiple sections to be evaluated separately (e.g. sentences)
+**marker_info: keyword arguments for splitting the data into sections (see DATA as <str> above)\
+'''.format(defaults['section_marker'])
 
 
 def preprocess_sg(data, **preprocessing):
@@ -178,30 +183,30 @@ def main():
                         help='Name/Path of file with input data. Must contain language and POS tags.')
     parser.add_argument('tag_subset',
                         nargs='+',
-                        help='POS tags to be considered')
+                        help='POS tags to be considered (space-delimited; at least one required)')
     parser.add_argument('--encoding', '-e',
-                        default='utf8',
-                        help='Encoding type.')
+                        default=defaults['encoding'],
+                        help='Encoding type (default: {}).'.format(defaults['encoding']))
     parser.add_argument('--lang_col', '-lc',
                         default=defaults['lang_col'],
                         type=int,
-                        help='Column number (1-indexed) containing language tags.')
+                        help='Column number (1-indexed) containing language tags (default: {}).'.format(defaults['lang_col']))
     parser.add_argument('--POS_col', '-pc',
                         default=defaults['POS_col'],
                         type=int,
-                        help='Column number (1-indexed) containing POS tags.')
+                        help='Column number (1-indexed) containing POS tags (default: {}).'.format(defaults['POS_col']))
     parser.add_argument('--delimiter', '-d',
                         default=defaults['delimiter'],
-                        help='Delimiter between columns (default: tab).')
+                        help='Delimiter between columns (default: {}).'.format(repr(defaults['delimiter'])))
     parser.add_argument('--single_section', '-sg',
                         action='store_true',
                         default=False,
-                        help='Specify if only evaluating a single section of data (as opposed to metrics for each sentence, for example).')
+                        help='Specify if evaluating the entire dataset (as opposed to metrics for each sentence, for example).')
     parser.add_argument('--marker_col', '-mc',
-                        help='Column number (1-indexed) containing section (e.g. sentence) markers (default: POS_col).')
+                        help='Column number (1-indexed) containing section (e.g. sentence) markers (default: same as POS_col).')
     parser.add_argument('--section_marker', '-um',
                         default=defaults['section_marker'],
-                        help='Text in the marker column denoting a break between sections of data.')
+                        help='Text in the marker column denoting a break between sections of data (default: {}).'.format(repr(defaults['section_marker'])))
     parser.add_argument('--section_starts', '-ss',
                         action='store_true',
                         help='Specify if section markers denote the starts of sections (ends assumed otherwise). ')
@@ -218,7 +223,7 @@ def main():
     if not(args.single_section or args.output_folder):
         args.output_folder = '\\'.join(args.input_file.split('\\')[:-1])
 
-    print(args.tag_subset) #DEBUG
+    print(args.tag_subset)  # DEBUG
     if not(args.language_fraction or args.matrix_language):
         raise ValueError('Either langfrac or matrix_language must be specified.')
 
