@@ -94,12 +94,6 @@ def _ap_parser(accepted_file_types):
         help="change the log level"
     )
     return parser
-    from argparse import ArgumentParser
-    parser = ArgumentParser(description="")
-    parser.add_argument(
-        '-l', '--log_level',
-        help="change the log level"
-    )
 
 
 def _interpret_tokenizers_folder(user_input):
