@@ -267,7 +267,7 @@ def _ap_parser():
     )
     parser.add_argument(
         '-l', '--log_level',
-        help='Change the log level'
+        help='Change the log level. Default: INFO. Type "LBL" for line-by-line (lower than DEBUG)'
     )
     return parser
 
@@ -291,7 +291,7 @@ def main():
     marker_type = eval(cmd_args.marker_type)
     input_filename = cmd_args.input_file.split('\\')[-1]
     input_file_title, input_file_extn = tuple(input_filename.split('.'))
-    output_filename = 'Metrics on "{}" ({}).{}'.format(input_file_title, dt.now(), input_file_extn)
+    output_filename = 'Metrics on {} ({}).{}'.format(input_file_title, dt.now(), input_file_extn)
     output_file = '{}\\{}'.format(cmd_args.output_folder, output_filename.replace(':', '.'))
     logging.debug('Output file will be: ' + output_file)
 
