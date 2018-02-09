@@ -138,7 +138,7 @@ def main(accepted_file_types=['txt', 'tsv'], tsv_sentstart_mark='start'):
         raise RuntimeError('Only {} allowed.'.format(_disp_extns(accepted_file_types, 'and')))
 
     # get tokenizer
-    logging.info('Locating Punkt tokenizer...')
+    logging.info('Loading Punkt tokenizer...')
     if args.tokenizers_folder:
         os.chdir(_interpret_tokenizers_folder(args.tokenizers_folder))
     tokenizer = nltk.data.load('tokenizers/punkt/{}.pickle'.format(args.language))
@@ -171,7 +171,7 @@ def main(accepted_file_types=['txt', 'tsv'], tsv_sentstart_mark='start'):
                 lencount += len(toks[rownum].split('\t')[0])
                 rownum += 1
             if lencount > sentlen:
-                raise RuntimeError('Sentence length mismatch at sentence #{}.'.format(i + 1))
+                logging.error('Sentence length mismatch at sentence #{}.'.format(i + 1))
         outtext = '\n'.join(toks)
 
     # write to output file(s)
