@@ -57,12 +57,54 @@ def _parse_args():
     return args
 
 
+def sentence_ends_by_tokenizer(tokens, **tokenizers):
+    '''find the word-level token index of the last token in each sentence as found by each tokenizer. result is a dict of sets where the key is the name of the tokenizer as provided in **tokenizers.'''
+    ends = {name: set() for name in tokenizers}  # index of last word-token in each sentence as found by each tokenizer
+    for name in tokenizers:
+        logging.info('Tokenizing with {}...'.format(name))
+        sents = tokenizers[name].sentences_from_tokens(tokens)
+        j = -1
+        for sent in sents:
+            L = len(sent)
+            ends[name].add(j + L)
+            j += L
+    return ends
+
+
 def _loop_input(prompt):
     '''loop until user input interpreted as True or False'''
     i = ''
     while i.lower() not in {'y', 'yes', 'n', 'no'}:
-        i = input(' '.join((prompt, '(Y/N) ')))
+        i = input(prompt + ' (Y/N) ')
     return i in {'y', 'yes'}
+
+
+class SharedAndUnique:
+    '''class for viewing shared and unique values among sets. unique values are the values in the set of the outer key but not the set of the inner key.'''
+
+    def __init__(self, **sets):
+        '''sets with names'''
+        self.unique = {outer: {inner: set() for inner in sets if inner != outer} for outer in sets}
+        self.shared = set()
+        for outer in sets:
+            for val in outer:
+                if val not in self.shared:
+                    shared_with = {inner for inner in sets if inner != outer and val in sets[inner]}
+                    if len(shared_with) == len(sets) - 1:
+                        self.shared.add(val)
+                    else:
+                        not_in = {name for name in sets if name not in shared_with and name != outer}
+                        for inner in not_in:
+                            self.unique[outer][inner].add(val)
+
+    def __str__(self):
+        '''display unique results'''
+        out = ''
+        for outer in self.unique:
+            for inner in self.unique[outer]:
+                out += 'In {} but not in {}:\n{}\n\n'.format(outer, inner, self.unique[outer][inner])
+        out = out.rstrip()
+        return out
 
 
 def _report(ends, unique):
@@ -72,14 +114,15 @@ def _report(ends, unique):
         group = unique[name]
         group.add(name)
         print('\t' + ',  '.join(group))
-    permission = _loop_input('Display results?')
+    permission = _loop_input('Display shared results?')
     if permission:
         for name in unique:
+
             print('\nGroup: ' + name)
             print(' '.join((str(i) for i in ends[name])))
 
 
-def compare(ends, tokenizer_names):
+def compare(ends):
     '''compare the results of each tokenization'''
     logging.info('Comparing...')
 
@@ -87,15 +130,6 @@ def compare(ends, tokenizer_names):
         r = dict(ends)
         r.pop(name)
         return r
-
-    # eliminate non-unique results
-    unique = {name: set() for name in tokenizer_names}
-    for name in tokenizer_names:
-        if name in unique:
-            for compared_name in rest(ends, name):
-                if ends[compared_name] == ends[name]:
-                    unique.pop(compared_name)
-                    unique[name].add(compared_name)
 
     # report
     if len(unique) == 1:
@@ -115,14 +149,12 @@ def main():
     tokens = [line[args.token_column] for line in items]
 
     # get tokenizers
-    tokenizers = []
-    tokenizer_names = []
+    tokenizers = {}
     # train new
     if not args.omit_newly_trained:
         logging.info('Training new tokenizer...')
         from train_sentence_tokenizer import Tokenizer
-        tokenizers.append(Tokenizer(tokens, args.abbreviations if args.abbreviations else set()))
-        tokenizer_names.append('newly trained')
+        tokenizers['Newly Trained'] = Tokenizer(tokens, args.abbreviations if args.abbreviations else set())
     # user-specified
     if args.tokenizer_location and args.tokenizer_location.endswith('.py'):
         import os
@@ -133,30 +165,18 @@ def main():
         os.chdir(tokenizer_folder)
         exec('import {} as module'.format(tokenizer_script), globals())
         os.chdir(orig_wd)
-        for tokenizer in args.tokenizers:
-            tokenizers.append(eval('module.' + tokenizer, globals()))
-            tokenizer_names.append(tokenizer)
+        for name in args.tokenizers:
+            tokenizers[name] = eval('module.' + name, globals())
     else:
         from nltk.data import load
-        for tokenizer in args.tokenizers:
-            tokenizers.append(load('{}/{}.pickle'.format(args.tokenizer_location.replace('\\', '/'), tokenizer)))  # will this work?
-            tokenizer_names.append(tokenizer)
+        for name in args.tokenizers:
+            tokenizers[name] = load('{}/{}.pickle'.format(args.tokenizer_location.replace('\\', '/'), name))
 
     # get sentences
-    ends = {name: [] for name in tokenizer_names}  # index of last token in each sentence per each tokenizer
-    for i in range(len(tokenizers)):
-        name = tokenizer_names[i]
-        tokenizer = tokenizers[i]
-        logging.info('Tokenizing with {}...'.format(name))
-        sents = tokenizer.sentences_from_tokens(tokens)
-        j = -1
-        for sent in sents:
-            L = len(sent)
-            ends[name].append(j + L)
-            j += L
+    ends = sentence_ends_by_tokenizer(tokens, **tokenizers)
 
     # compare
-    compare(ends, tokenizer_names)
+    compare(ends)
 
     # save
     if not args.omit_newly_trained:
