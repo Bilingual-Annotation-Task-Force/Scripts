@@ -117,7 +117,7 @@ def main(accepted_file_types=['txt', 'tsv'], tsv_sentstart_mark='start'):
     import nltk.data
     orig_wd = os.getcwd()
     toks = indices = None
-    args = _ap_parser().parse_args()
+    args = _ap_parser(accepted_file_types).parse_args()
     if args.log_level:
         logging.getLogger().setLevel(eval('logging.' + args.log_level.upper()))
     print('')
