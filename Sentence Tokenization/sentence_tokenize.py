@@ -166,10 +166,12 @@ def main(accepted_file_types=['txt', 'tsv'], tsv_sentstart_mark='start'):
             toks[rownum] += '\t' * (ncols - toks[rownum].count('\t')) + tsv_sentstart_mark  # mark start of sentence. NCOLS considered in case of inconsistent number of entries per row.
             sent = sents[i]
             sentlen = len(sent) - sent.count(' ')
+            logging.debug('sentlen: {}'.format(sentlen))
             lencount = 0
             while lencount < sentlen:
                 lencount += len(toks[rownum].split('\t')[0])
                 rownum += 1
+            logging.debug('lencount: {}'.format(lencount))
             if lencount > sentlen:
                 logging.error('Sentence length mismatch at sentence #{}.'.format(i + 1))
         outtext = '\n'.join(toks)
