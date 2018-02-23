@@ -6,7 +6,7 @@ For training new sentence tokenizers and saving as a .pickle file
 """
 
 import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
 
 def _parse_args():
@@ -36,6 +36,11 @@ def _parse_args():
     parser.add_argument(
         '-l', '--log_level',
         help='change the log level'
+    )
+    parser.add_argument(
+        '-e', '--encoding',
+        default='utf8'
+        help='encoding type (default: UTF-8)'
     )
     logging.debug('Parsing user args...')
     args = parser.parse_args()
