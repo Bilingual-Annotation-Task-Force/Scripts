@@ -39,7 +39,7 @@ def _parse_args():
     )
     parser.add_argument(
         '-e', '--encoding',
-        default='utf8'
+        default='utf8',
         help='encoding type (default: UTF-8)'
     )
     logging.debug('Parsing user args...')
