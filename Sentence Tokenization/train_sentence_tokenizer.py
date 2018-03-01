@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(mess
 
 def _parse_args():
     from argparse import ArgumentParser
-    parser = ArgumentParser(description="")
+    parser = ArgumentParser(description='Use this program to create a new sentence tokenizer. The program takes an input of training data, which can be either tokenized or untokenized at the word level (specify "-txt" for untokenized). The output is a .pickle file storing a new Punkt tokenizer object. Add custom abbreviations using "-a" followed by space-separated entries.')
     parser.add_argument(
         'training_file',
         help='file containing training data'
@@ -31,6 +31,8 @@ def _parse_args():
     )
     parser.add_argument(
         '-c', '--token_column',
+        default=0,
+        type=int,
         help='column containing word-level tokens'
     )
     parser.add_argument(
@@ -41,6 +43,11 @@ def _parse_args():
         '-e', '--encoding',
         default='utf8',
         help='encoding type (default: UTF-8)'
+    )
+    parser.add_argument(
+        '-txt', '--plain_text',
+        action='store_true',
+        help='specify if the training data is untokenized'
     )
     logging.debug('Parsing user args...')
     args = parser.parse_args()
@@ -70,20 +77,26 @@ def main():
 
     # setup
     args = _parse_args()
-    output_folder = args.output_folder if args.output_folder else ''
-    output_file = '{}\\{}.pickle'.format(output_folder, args.name)
+    if args.output_folder:
+        output_file = '{}\\{}.pickle'.format(args.output_folder, args.name)
+    else:
+        output_file = args.name + '.pickle'
     logging.debug('Output file will be: ' + output_file)
 
     # get input
-    logging.info('Retrieving training data')
-    with open(args.input_file, 'r', encoding=args.encoding) as f:
-        contents = f.read().splitlines()
-    logging.debug('Preprocessing training data...')
-    items = [line.split['\t'] for line in contents]
-    tokens = [line[0] for line in items]
+    logging.info('Retrieving training data...')
+    if args.plain_text:
+        with open(args.training_file, 'r', encoding=args.encoding) as f:
+            data = f.read()
+    else:
+        with open(args.training_file, 'r', encoding=args.encoding) as f:
+            contents = f.read().splitlines()
+        logging.debug('Preprocessing training data...')
+        items = [line.split['\t'] for line in contents]
+        data = [line[args.token_column] for line in items]
 
     # train
-    tokenizer = Tokenizer(tokens, args.abbreviations if args.abbreviations else set())
+    tokenizer = Tokenizer(data, args.abbreviations if args.abbreviations else set())
 
     # write
     logging.info('Saving tokenizer to {}...'.format(output_file))
