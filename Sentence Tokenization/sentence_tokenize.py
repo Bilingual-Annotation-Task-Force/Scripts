@@ -82,8 +82,8 @@ def _ap_parser(accepted_file_types):
         help="file encoding (default=UTF8)"
     )
     parser.add_argument(
-        '-tf', '--tokenizers_folder',
-        help="folder in which the 'tokenizers' folder resides"
+        '-tf', '--tokenizer_folder',
+        help="folder containing the desired Punkt tokenizer"
     )
     parser.add_argument(
         '-of', '--output_folder',
@@ -96,18 +96,18 @@ def _ap_parser(accepted_file_types):
     return parser
 
 
-def _interpret_tokenizers_folder(user_input):
-    '''interpret the user input for the location of the folder containing the `tokenizers` subfolder'''
-    folders = user_input.split('\\')
-    if folders[-1].lower() == 'punkt':
-        if folders[-2].lower() == 'tokenizers':
-            n = 2
-        else:
-            n = 1
-        folders = folders[:-n]
-    elif folders[-1].lower() == 'tokenizers':
-        folders = folders[:-1]
-    return '\\'.join(folders)
+# def _interpret_tokenizers_folder(user_input):
+#     '''interpret the user input for the location of the folder containing the `tokenizers` subfolder'''
+#     folders = user_input.split('\\')
+#     if folders[-1].lower() == 'punkt':
+#         if folders[-2].lower() == 'tokenizers':
+#             n = 2
+#         else:
+#             n = 1
+#         folders = folders[:-n]
+#     elif folders[-1].lower() == 'tokenizers':
+#         folders = folders[:-1]
+#     return '\\'.join(folders)
 
 
 def main(accepted_file_types=['txt', 'tsv'], tsv_sentstart_mark='start'):
@@ -139,9 +139,9 @@ def main(accepted_file_types=['txt', 'tsv'], tsv_sentstart_mark='start'):
 
     # get tokenizer
     logging.info('Loading Punkt tokenizer...')
-    if args.tokenizers_folder:
-        os.chdir(_interpret_tokenizers_folder(args.tokenizers_folder))
-    tokenizer = nltk.data.load('tokenizers/punkt/{}.pickle'.format(args.language))
+    if args.tokenizer_folder:
+        os.chdir(args.tokenizer_folder)
+    tokenizer = nltk.data.load('{}.pickle'.format(args.language))
 
     # tokenize
     logging.warning('Note: Custom-trained sentence tokenizers are best for multilingual data.')
