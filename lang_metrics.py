@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # lang_metrics.py
-# Using Python 3.4.3
+# Using Python 3.6.3
 #
 # PURPOSE: Calculate various metrics to describe code-switching behavior in
 # language-tagged corpora.
@@ -47,6 +47,7 @@ def main(func):
         if VERBOSE:
                 print("Set of language tags: {}".format(LANGS))
                 print("Length of corpus: {}".format(NUMTAGS))
+                print("Language Tokens: {}".format(Counter(LANG_TAGS)))
 
         func_map = {
                 'metrics': metrics,
@@ -59,6 +60,8 @@ def main(func):
                 'switchpoints': switchpoints,
                 'lang_entropy': lang_entropy,
                 'span_entropy': span_entropy,
+                'switch_entropy': switch_entropy,
+                'switch_surprisal': switch_surprisal,
                 }
 
         func_map[func]()
@@ -72,6 +75,8 @@ def metrics():
         memory()
         lang_entropy()
         span_entropy()
+        switch_entropy()
+        switch_surprisal()
 
 
 def num_switchpoints():
@@ -211,6 +216,34 @@ def span_entropy():
         print("Span Entropy: {}".format(span_entropy))
 
 
+def switch_entropy():
+        switches = 0
+
+        # Compute vector of switch indices
+        for index, tag in enumerate(LANG_TAGS[:-1]):
+                if tag != LANG_TAGS[index + 1]:
+                        switches += 1
+
+        switches = switches / (NUMTAGS - 1)
+        switches = - switches * math.log2(switches)
+
+        print("Switch Entropy: {}".format(switches))
+
+
+def switch_surprisal():
+        surprisal = 0
+
+        # Compute vector of switch indices
+        for index, tag in enumerate(LANG_TAGS[:-1]):
+                if tag != LANG_TAGS[index + 1]:
+                        surprisal += 1
+
+        surprisal = surprisal / (NUMTAGS - 1)
+        surprisal = math.log2(1 / surprisal)
+
+        print("Switch Surprisal: {}".format(surprisal))
+
+
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
                 description=("Calculate various metrics to describe "
@@ -240,7 +273,7 @@ if __name__ == "__main__":
                 help=("language column in input file "
                       "(Default: 0)"))
         parser.add_argument(
-                "--header",
+                "-H", "--header",
                 action="store_true",
                 help="header flag  (Default: False)")
         parser.add_argument(
@@ -250,7 +283,7 @@ if __name__ == "__main__":
                 help=("Possible functions: "
                       "metrics, m_metric, i_metric, burstiness, memory, "
                       "spans, span_summary, switchpoints, lang_entropy, "
-                      "span_entropy. (Default: metrics)"))
+                      "span_entropy, switch_entropy, switch_surprisal. (Default: metrics)"))
 
         # Positional arguments
         parser.add_argument(
