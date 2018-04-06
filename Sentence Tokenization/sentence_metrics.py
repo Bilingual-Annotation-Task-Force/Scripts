@@ -207,7 +207,7 @@ def _ap_parser():
     '''set up and return the argparse parser'''
     import argparse
     logging.debug('_ap_parser: Creating argument parser...')
-    parser = argparse.ArgumentParser(description='Sentence-level metrics on data with sentence markers. **Not yet debugged**')  # DEBUG
+    parser = argparse.ArgumentParser(description='Sentence-level metrics on data with sentence markers.')
     parser.add_argument(
         'input_file',
         help='corpus file with sentence markers'
@@ -229,12 +229,7 @@ def _ap_parser():
     )
     parser.add_argument(
         'function_file',
-        help='Python file containing function(s) to evaluate. function should take an argument of a list of dicts in the format {"lang": lang_val, "POS": POS_val}. if in separate files, must join into single file.'
-    )
-    parser.add_argument(
-        'function_names',
-        nargs='+',
-        help='series of function names in function file. all functions will be performed on each sentence.'
+        help='Python script containing function(s) to evaluate. Each function should take an argument of a list of dicts in the format {"lang": lang_val, "POS": POS_val}. If in separate files, must join into single file. The script must also have a variable called "FUNCTIONS" as a list containing the desired functions to calculate.'
     )
     parser.add_argument(
         '-m', '--marker',
@@ -275,7 +270,7 @@ def _ap_parser():
 def main():
     '''for command line execution'''
 
-    # setup
+    # set up
     print()
     import os
     from datetime import datetime as dt
@@ -308,11 +303,10 @@ def main():
     if folder:
         os.chdir(folder)
         logging.debug('Changed directory to ' + os.getcwd())
-    exec('import {} as module'.format(filename), globals())
-    logging.debug('Module imported: {}'.format(module))
+    exec('from {} import FUNCTIONS as funcs'.format(filename), globals())
+    logging.debug('Functions imported: {}'.format(funcs))
     os.chdir(orig_wd)
     logging.debug('Changed directory to ' + os.getcwd())
-    funcs = [module.__dict__[funcname] for funcname in cmd_args.function_names]
     logging.debug('Functions list: {}'.format(funcs))
 
     # load input file & make generator
@@ -326,7 +320,7 @@ def main():
         writer = writer(f, delimiter='\t')
         writer.writerow(['Sentence No.'] + [func.__name__ for func in funcs])  # headings
         for i, metrics in enumerate(sent_metrics):
-            writer.writerow([i] + [metric for metric in metrics])
+            writer.writerow([i] + list(metrics))
     logging.info('Wrote to output file at ' + output_file)
 
     print('\nDone')

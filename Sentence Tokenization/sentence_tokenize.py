@@ -158,8 +158,9 @@ def main():
         writer = csv.writer(outfile, dialect)
         if wt:
             logging.info('Writing to output file...')
-            start = 0
+            start = c = 0  # DEBUG
             for sent in sents:
+                c += 1  # DEBUG
                 L = len(sent)
                 for i, tok in enumerate(sent):
                     line = lines[start + i]
@@ -182,7 +183,7 @@ def main():
                     else:
                         line = [tok, '']
                     writer.writerow(line)
-
+    print(c)  # DEBUG
     logging.info('Done.')
 
 
