@@ -14,7 +14,7 @@ from math import log2, sqrt
 # settings
 LANGS = {'eng', 'spa'}  # non-ignored languages (e.g. not punctuation)
 REFLANG = 'eng'  # language to which calculations refer in reporting
-IGNORE_LANG_SUBSET = {'NA'}  # subset of language tags to be ignored
+IGNORE_LANG_SUBSET = {'NA'}  # subset of language tags to be ignored (e.g. punctuation)
 POS_SUBSETS = {
     'FuncWord': {'ADP', 'CONJ', 'DET', 'PRON', 'FUNCV'},
     'Verb': {'FUNCV', 'CONTV'},
@@ -25,6 +25,15 @@ N_LANGS = len(LANGS)
 
 # for sharing info b/w functions
 subset_size_this_sent = {subset_name: 0 for subset_name in POS_SUBSETS}
+
+
+def SentLen(sent):
+    '''number of countable tokens in the sentence'''
+    count = 0
+    for tok in sent:
+        if tok['lang'] not in IGNORE_LANG_SUBSET:
+            count += 1
+    return count
 
 
 def Frac_Reflang(sent):

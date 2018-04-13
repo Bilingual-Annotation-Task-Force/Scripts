@@ -4,41 +4,26 @@ Python 3.6.0
 11/15/17
 """
 
-# Referred to this link to obtain the sentence tokenizer: http://textminingonline.com/dive-into-nltk-part-ii-sentence-tokenize-and-word-tokenize
-# This script uses Punkt via the module nltk.data. According to the above webpage, Punkt supports 17 European languages.
-# The above link has instructions for downloading necessary files.
-# Further instructions are in the argparse help message.
-# Note: this tokenization will be imperfect for multilingual data because there is not yet a way to combine sentence tokenizers of multiple languages; one must be picked, and resulting
-#    sentences will have to be screened to ensure correct tokenization.
-
-# Example command line input:
-#     ..\dropbox\documents\compling\bats\"scripts (github)"\sentence_tokenize.py test.tsv english -tf ..\anaconda3\lib\site-packages
-#
-#     Explanation:
-#        This is the input I used to test the file. My working directory at the time of execution was the desktop, where I kept the input file "test.tsv"; hence, no address was necessary
-#        to specify the location of the file. The argument preceding "test.tsv" calls this script, which I keep in a folder called "Scripts (GitHub)". The third argument is the language
-#        of the selected tokenizer, or more specifically the name of the Punkt tokenizer ".pickle" file (a typo would cause a lookup error). Finally, I specified an optional argument
-#        instructing the script to locate the tokenizers folder in my Anaconda files where I have downloaded it and where it does not automatically check. Without additional arguments,
-#        the script writes the output file to the original working directory. Since it is a .tsv file, the result is a new .tsv with the original name followed by "(marked for sentence
-#        starts)" and contents including a new column marking the start of each sentence.
-
 
 import logging
-from string import punctuation
 logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
 
 def _ap_parser():
     '''set up and return the argparse parser'''
     import argparse
-    parser = argparse.ArgumentParser(description="Outputs a new TSV file with an additional column indicating the last token of each sentence. Input can be tokenized or untokenized at the word level.")
+    parser = argparse.ArgumentParser(description='''\
+Outputs a new TSV file with an additional column indicating the last token of each sentence. Input can be tokenized or untokenized at the word level. If no pre-trained tokenizer specified, this script splits \
+the corpus into `n` subsections, each of which is in turn split in half. Two tokenizers are then trained: one on the first half of each section and the other on the \
+second half. Each tokenizer is applied to the opposite half from which it was trained.\
+''')
     parser.add_argument(
         'input_file',
         help="corpus file"
     )
     parser.add_argument(
-        'tokenizer',
-        help="the desired sentence tokenizer *.pickle file"
+        '-t', '--tokenizer',
+        help="pre-trained sentence tokenizer *.pickle file"
     )
     parser.add_argument(
         '-wt', '--word_tokenized',
@@ -72,36 +57,13 @@ def _ap_parser():
     return parser
 
 
-def wordtok(sent):
-    '''tokenize at the word level'''
-    result = sent.strip().split()
-    i = 0
-    while i < len(result):
-        word = result[i]
-        j = k = 0
-        while word[j] in punctuation:
-            j += 1
-        while word[-1 - k] in punctuation:
-            k += 1
-        L = len(word)
-        if j + k < L:  # not all punctuation
-            result[i] = word[j:L - k]
-            if j > 0:
-                result.insert(i, word[:j])
-                i += 1
-                result.insert(i + 1, word[-k:])  # might want to do more to separate out '.' from '"', etc.
-                i += 1
-        i += 1
-    return result
-
-
 def main():
     # set up
     import os
     import nltk.data
     import csv
     orig_wd = os.getcwd()
-    toks = indices = None
+    toks = None
     args = _ap_parser().parse_args()
     if args.log_level:
         logging.getLogger().setLevel(eval('logging.' + args.log_level.upper()))
@@ -109,7 +71,6 @@ def main():
 
     # some file name processing
     infile_parts = args.input_file.split('\\')[-1].split('.')
-    infile_ext = infile_parts[-1].lower()
     infile_name = '.'.join(infile_parts[:-1])
     tknzr_name = args.tokenizer.replace('\\', '/')
     if not tknzr_name.endswith('.pickle'):
@@ -158,9 +119,8 @@ def main():
         writer = csv.writer(outfile, dialect)
         if wt:
             logging.info('Writing to output file...')
-            start = c = 0  # DEBUG
+            start = 0
             for sent in sents:
-                c += 1  # DEBUG
                 L = len(sent)
                 for i, tok in enumerate(sent):
                     line = lines[start + i]
@@ -174,6 +134,7 @@ def main():
                 start += L
         else:
             logging.info('Word-tokenizing and writing to output file...')
+            from nltk.tokenize import word_tokenize as wordtok  # can replace with other word tokenizer if desired
             for sent in sents:
                 toks = wordtok(sent)
                 L = len(toks)
@@ -183,7 +144,6 @@ def main():
                     else:
                         line = [tok, '']
                     writer.writerow(line)
-    print(c)  # DEBUG
     logging.info('Done.')
 
 
