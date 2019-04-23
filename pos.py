@@ -1,43 +1,61 @@
-import torch
-from flair.data import Sentence
+from flair.data import TaggedCorpus, Sentence
+from flair.data_fetcher import NLPTaskDataFetcher, NLPTask
+from flair.embeddings import TokenEmbeddings, WordEmbeddings, StackedEmbeddings, FlairEmbeddings
+from typing import List
 from flair.models import SequenceTagger
-import pickle
+from torch.optim.adam import Adam
 
-"""
-Uses flair's multi lingual tagger to tag given document.
+columns = {0: 'text', 1: 'pos'}
+data_folder = 'data/'
+corpus: TaggedCorpus = NLPTaskDataFetcher.load_column_corpus(data_folder, columns,
+                                                              train_file='Miami_Universal_Tagged.tsv',
+                                                              test_file='S7_Universal_Tagged.tsv',
+                                                              dev_file='KC_ARIS_Universal_Tagged.tsv')
+temp = corpus.train[0]
+def split_sentence(tokens, seq_len = 30):
+  tokens = [tokens[i: seq_len+i] for i in range(0, len(tokens), seq_len)]
+  train = []
+  for t in tokens:
+    s = Sentence()
+    s.tokens = t
+    train.append(s)
+  return train
+train = split_sentence(corpus.train[0])
+print(corpus.test)
+test = split_sentence(corpus.test[0])
+dev = split_sentence(corpus.dev[0])
+print(len(train))
+print(len(test))
+print(len(dev))
+corpus = TaggedCorpus(train, dev, test)
+tag_type = 'pos'
+tag_dictionary = corpus.make_tag_dictionary(tag_type=tag_type)
+print(tag_dictionary.idx2item)
+embedding_types: List[TokenEmbeddings] = [
+    FlairEmbeddings('news-forward'),
+    FlairEmbeddings('news-backward'),
+    FlairEmbeddings('spanish-forward'),
+    FlairEmbeddings('spanish-backward')
+]
+embeddings: StackedEmbeddings = StackedEmbeddings(embeddings=embedding_types)
+tagger: SequenceTagger = SequenceTagger(
+    hidden_size=512,
+    embeddings=embeddings,
+    tag_dictionary=tag_dictionary,
+    tag_type=tag_type,
+    use_rnn=True,
+    use_crf=True,
+    rnn_layers = 3,
+    dropout = 0.3
+)
 
-The input file should be white space tokenized with a \n seperating
-each sentence.
-    For example:
-        The keys, which were needed to access the building, were locked in the car.\n
-    should become:
-        The keys , which were needed to access the building , were locked in the car .\n
 
-Outputs a human readable version at POS_OUT_FILE,
-as well as a serialized version at PICKLE_FILE
-"""
-INPUT_FILE = "real_feature.txt"
-POS_OUT_FILE = "KC_pos.txt"
-PICKLE_FILE = "KC_pos_pickle"
-ENCODING = "utf-8-sig"
-if __name__ == "__main__":
-    tagger = SequenceTagger.load("pos-multi")
-    with open(INPUT_FILE, encoding = ENCODING) as f:
-        sentences = []
-        # empty the contents
-        with open(POS_OUT_FILE, "w") as p, open(PICKLE_FILE, "w") as pp:
-            pass
-        with open(POS_OUT_FILE, "a", encoding = ENCODING) as p:
-            for l in f:
-                # construct and parse the sentence
-                sentence = Sentence(l)
-                tagger.predict(sentence)
-                # append sentence to a list for pickle
-                sentences.append(sentence)
-                # print readable version to the file
-                print(sentence.to_tagged_string(), file=p)
-            print("done outputing readable POS tag")
-        # pickles a list of Sentence object to file for quick access
-        with open(PICKLE_FILE, "wb") as pp:
-            pickle.dump(sentences, pp)
-            print("done outputing serialized object")
+from flair.trainers import ModelTrainer
+
+trainer: ModelTrainer = ModelTrainer(tagger, corpus, optimizer = Adam)
+trainer.train('resources/taggers/pos',
+              learning_rate = 1e-4,
+              mini_batch_size=32,
+              max_epochs=50)
+
+
