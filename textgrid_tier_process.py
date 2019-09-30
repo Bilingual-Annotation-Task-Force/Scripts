@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 
 def parse_textgrid_to_csv(src_path = "DanishVoices_BSK_RevisedTextGrid_080219", dest_path = "Danish.csv"):
+    # Processes Textgrid file to csv.
     assert type(src_path) == type("string")
     assert type(dest_path) == type("string")
     assert dest_path[-4: ] == ".csv" # make sure the output is to a csv file
